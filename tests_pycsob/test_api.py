@@ -53,7 +53,7 @@ class CsobClientTests(TestCase):
             '"C9puGaxsYLEIazy04hVtCx5sMu8/eg6F2l17UfIUgCKFP4XvHIYA3xbIplbv1HbbQlGKgmw3FhD+FEYwq/E0bg=="}; '
             'Json: None; {}'), (
             'pycsob', 'DEBUG', "Pycsob request headers: {'content-type': 'application/json', 'user-agent': "
-            "'py-csob/1.0.0', 'Content-Length': '157'}"), (
+            "'py-csob/1.0.1', 'Content-Length': '157'}"), (
             'pycsob', 'INFO', 'Pycsob response: [200] {"dttm": "20190502161426", "resultCode": 0, '
             '"resultMessage": "OK", "signature": '
             '"hEyfa8OBR+eQIeqxBFB1SA9SHdhNkKBlM37IEizZ6z+2Bb4VSu1qldcpJEzARHOHJAgUOmwVXZC9v0MYcMg0TQ=="}'), (
@@ -83,7 +83,7 @@ class CsobClientTests(TestCase):
             'https://gw.cz/echo/MERCHANT/20190502161426/C9puGaxsYLEIazy04hVtCx5sMu8%2Feg6F2l17UfIUgCKFP4XvHIYA3xbIplbv'
             '1HbbQlGKgmw3FhD%2BFEYwq%2FE0bg%3D%3D; {}'), (
             'pycsob', 'DEBUG', "Pycsob request headers: {'content-type': 'application/json', 'user-agent': "
-            "'py-csob/1.0.0'}"), (
+            "'py-csob/1.0.1'}"), (
             'pycsob', 'INFO', 'Pycsob response: [200] {"dttm": "20190502161426", "resultCode": 0, '
             '"resultMessage": "OK", "signature": '
             '"hEyfa8OBR+eQIeqxBFB1SA9SHdhNkKBlM37IEizZ6z+2Bb4VSu1qldcpJEzARHOHJAgUOmwVXZC9v0MYcMg0TQ=="}'), (
@@ -128,7 +128,7 @@ class CsobClientTests(TestCase):
             '"KMLqDJs+vSFqLaEG66i6MtkRZEL6U9HwqT3dPrYh237agzlkPnkXHHrCF2p+Sntzq/UWN03HfDhL5IHSsHvp6Q=="}; '
             'Json: None; {}'),
             ('pycsob', 'DEBUG', "Pycsob request headers: {'content-type': 'application/json', 'user-agent': "
-            "'py-csob/1.0.0', 'Content-Length': '460'}"),
+            "'py-csob/1.0.1', 'Content-Length': '460'}"),
             ('pycsob', 'INFO', 'Pycsob response: [200] {"payId": "34ae55eb69e2cBF", "dttm": "20190502161426", '
             '"resultCode": 0, "resultMessage": "OK", "paymentStatus": 1, "signature": '
             '"Zd+PKspUEkrsEyxTmXAwrX3pgfS45Sg35dhMo5Oi0aoI8LoLs3dlyPS9vEXw80fxKyduAl5ws8D0Fu2mXLy9bA=="}'),
@@ -172,7 +172,7 @@ class CsobClientTests(TestCase):
             '"signature": "FcfTzD5ChQXyWAgBMZX+d/QOBbaGKXRusHwpiOaX+Aticygm1D8EzH+MtnMFq+Gp3dcQMTUg0bQKaCXfcQBeiA=="}; '
             'Json: None; {}'),
             ('pycsob', 'DEBUG', "Pycsob request headers: {'content-type': 'application/json', 'user-agent': "
-            "'py-csob/1.0.0', 'Content-Length': '492'}"),
+            "'py-csob/1.0.1', 'Content-Length': '492'}"),
             ('pycsob', 'INFO', 'Pycsob response: [200] {"payId": "34ae55eb69e2cBF", "dttm": "20190502161426", '
             '"resultCode": 110, "resultMessage": "Invalid \'cart\' amounts, does not sum to totalAmount", '
             '"paymentStatus": 6, "signature": '
@@ -217,7 +217,7 @@ class CsobClientTests(TestCase):
             '26/hi0fi1sF0BL0SLWagZ9QJ4aLe7B3I0MN0rr0ocRb75ZP7wZunTLdrbFkALs1rUQYe1sJaKaoo%2B%2BoVs6grd%2F0WA%3D%3D;'
             ' {}'),
             ('pycsob', 'DEBUG', "Pycsob request headers: {'content-type': 'application/json', 'user-agent': "
-            "'py-csob/1.0.0'}"),
+            "'py-csob/1.0.1'}"),
             ('pycsob', 'INFO', 'Pycsob response: [200] {"payId": "34ae55eb69e2cBF", "dttm": "20190502161426", '
             '"resultCode": 110, "resultMessage": "OK", "paymentStatus": 7, "authCode": "F7A23E", "signature": '
             '"FFXfpqhazvXVKEMckHw+Y2tRDespTUp62NQ6kAwA4T0LNT6LDKj70d5XBJrrx3XNs92JGUT6wIJZR25MFmibFA==", '
@@ -239,7 +239,7 @@ class CsobClientTests(TestCase):
             '"C9puGaxsYLEIazy04hVtCx5sMu8/eg6F2l17UfIUgCKFP4XvHIYA3xbIplbv1HbbQlGKgmw3FhD+FEYwq/E0bg=="}; '
             'Json: None; {}'),
             ('pycsob', 'DEBUG', "Pycsob request headers: {'content-type': 'application/json', 'user-agent': "
-            "'py-csob/1.0.0', 'Content-Length': '157'}"),
+            "'py-csob/1.0.1', 'Content-Length': '157'}"),
             ('pycsob', 'INFO', 'Pycsob response: [500] '),
             ('pycsob', 'DEBUG', "Pycsob response headers: {'Content-Type': 'text/plain'}")
         )
@@ -300,7 +300,7 @@ class CsobClientTests(TestCase):
             '"a5jKBePOpjgX0CjUkKFTe3UzedHzFgrvSsVf3NnSZ7uzuFyBIs5QEVxN9QZ8y7LKKRiigEzU8r6GZ3MiEFf9RA=="}; '
             'Json: None; {}'),
             ('pycsob', 'DEBUG', "Pycsob request headers: {'content-type': 'application/json', "
-            "'user-agent': 'py-csob/1.0.0', 'Content-Length': '466'}"),
+            "'user-agent': 'py-csob/1.0.1', 'Content-Length': '466'}"),
             ('pycsob', 'INFO', 'Pycsob response: [200] {"payId": "34ae55eb69e2cBF", "dttm": "20190502161426", '
             '"resultCode": 0, "resultMessage": "OK", "paymentStatus": 1, "signature": '
             '"Zd+PKspUEkrsEyxTmXAwrX3pgfS45Sg35dhMo5Oi0aoI8LoLs3dlyPS9vEXw80fxKyduAl5ws8D0Fu2mXLy9bA=="}'),
@@ -349,7 +349,7 @@ class CsobClientTests(TestCase):
             '"XH4RdW0dXrDh81dUHNKMrF+LVfZZtIOKJXzVUSxB/RVKK2Sb59SJvl8jonujNZC78GJkr5THLCbnMJNUfXpQag=="}; '
             'Json: None; {}'),
             ('pycsob', 'DEBUG', "Pycsob request headers: {'content-type': 'application/json', 'user-agent': "
-            "'py-csob/1.0.0', 'Content-Length': '442'}"),
+            "'py-csob/1.0.1', 'Content-Length': '442'}"),
             ('pycsob', 'INFO', 'Pycsob response: [200] {"payId": "34ae55eb69e2cBF", "dttm": "20190502161426", '
             '"resultCode": 0, "resultMessage": "OK", "paymentStatus": 1, "signature": '
             '"Zd+PKspUEkrsEyxTmXAwrX3pgfS45Sg35dhMo5Oi0aoI8LoLs3dlyPS9vEXw80fxKyduAl5ws8D0Fu2mXLy9bA=="}'),
@@ -384,7 +384,7 @@ class CsobClientTests(TestCase):
             '"H+eKbex5KdHUtZ/fxB5vfMlgEkH3H6RfDj3oR9i/R/8HYInmyP0tz6+lqzF8EztHmpA/vxevW9qvNTgV535eZw=="}; '
             'Json: None; {}'),
             ('pycsob', 'DEBUG', "Pycsob request headers: {'content-type': 'application/json', 'user-agent': "
-            "'py-csob/1.0.0', 'Content-Length': '482'}"),
+            "'py-csob/1.0.1', 'Content-Length': '482'}"),
             ('pycsob', 'INFO', 'Pycsob response: [200] {"payId": "34ae55eb69e2cBF", "dttm": "20190502161426", '
             '"resultCode": 0, "resultMessage": "OK", "paymentStatus": 1, "customerCode": "E61EC8", "signature": '
             '"KmqB9foNOz7aJuyujNcHDpD7rmPZzkN/AePWw62h5xYxowrd1Jb5o6JdF1S76USHaPn4yc+iOIM+pw601l3PxQ=="}'),
@@ -417,7 +417,7 @@ class CsobClientTests(TestCase):
              '"D3rppiWK7zp1B9ra94cxQczOwfUVrRnyd8oLRTd4guC+qXALRXKHgqc7AVPnM3kuMG6fRY9B4X9+10n/603C9Q=="}; '
              'Json: None; {}'),
             ('pycsob', 'DEBUG', "Pycsob request headers: {'content-type': 'application/json', 'user-agent': "
-             "'py-csob/1.0.0', 'Content-Length': '345'}"),
+             "'py-csob/1.0.1', 'Content-Length': '345'}"),
             ('pycsob', 'INFO', 'Pycsob response: [200] {"payId": "34ae55eb69e2cBF", "dttm": '
              '"20190502161426", "resultCode": 0, "resultMessage": "OK", "signature": '
              '"mMvfLq/SzhagYKkJp/PnQ+Y9zoMJIGt1OznlxQLqq+gsyhOjUd4ghDtJtFt8bQkpr+jwj6kd/y8R5RyxZ7qgag=="}'),
@@ -475,7 +475,7 @@ class CsobClientTests(TestCase):
             '"Zd+PKspUEkrsEyxTmXAwrX3pgfS45Sg35dhMo5Oi0aoI8LoLs3dlyPS9vEXw80fxKyduAl5ws8D0Fu2mXLy9bA=="}; '
             'Json: None; {}'),
             ('pycsob', 'DEBUG', "Pycsob request headers: {'content-type': 'application/json', 'user-agent': "
-            "'py-csob/1.0.0', 'Content-Length': '219'}"),
+            "'py-csob/1.0.1', 'Content-Length': '219'}"),
             ('pycsob', 'INFO', 'Pycsob response: [200] {"payId": "34ae55eb69e2cBF", "dttm": "20190502161426", '
             '"resultCode": 0, "resultMessage": "OK", "paymentStatus": 1, "signature": '
             '"Zd+PKspUEkrsEyxTmXAwrX3pgfS45Sg35dhMo5Oi0aoI8LoLs3dlyPS9vEXw80fxKyduAl5ws8D0Fu2mXLy9bA=="}'),
