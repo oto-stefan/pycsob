@@ -102,6 +102,104 @@ class CsobClientTests(TestCase):
         sig = payload.pop('signature')
         assert utils.verify(payload, sig, KEY_PATH)
 
+    def test_complex_message_for_sign(self):
+        data = {
+            "merchantId": self.c.merchant_id,
+            "orderNo": "5547",
+            "dttm": utils.dttm(),
+            "payOperation": "payment",
+            "payMethod": "card",
+            "totalAmount": 123400,
+            "currency": "CZK",
+            "closePayment": True,
+            "returnUrl": "https://shop.example.com/return",
+            "returnMethod": "POST",
+            "cart": [
+                {
+                    "name": "Wireless headphones",
+                    "quantity": 1,
+                    "amount": 123400,
+                },
+                {
+                    "name": "Shipping",
+                    "quantity": 1,
+                    "amount": 0,
+                    "description": "DPL",
+                },
+            ],
+            "customer": {
+                "name":"Jan Novák",
+                "email":"jan.novak@example.com",
+                "mobilePhone":"+420.800300300",
+                "account": {
+                    "createdAt":"2022-01-12T12:10:37+01:00",
+                    "changedAt":"2022-01-15T15:10:12+01:00",
+                },
+                "login": {
+                    "auth": "account",
+                    "authAt": "2022-01-25T13:10:03+01:00",
+                }
+            },
+            "order": {
+                "type": "purchase",
+                "availability": "now",
+                "delivery": "shipping",
+                "deliveryMode": "1",
+                "addressMatch": True,
+                "billing": {
+                    "address1": "Karlova 1",
+                    "city": "Praha",
+                    "zip": "11000",
+                    "country": "CZE",
+                },
+            },
+            "merchantData": "some-base64-encoded-merchant-data",
+            "language": "cs",
+        }
+        pairs = ((k, v) for k, v in data.items())
+        payload = utils.mk_payload(KEY_PATH, pairs)
+        sig = payload.pop('signature')
+        assert utils.verify(payload, sig, KEY_PATH)
+        msg = utils.mk_msg_for_sign(payload).decode('utf-8')
+        expected_items = (
+            'MERCHANT',
+            '5547',
+            '20190502161426',
+            'payment',
+            'card',
+            '123400',
+            'CZK',
+            'true',
+            'https://shop.example.com/return',
+            'POST',
+            'Wireless headphones',
+            '1',
+            '123400',
+            'Shipping',
+            '1',
+            '0',
+            'DPL',
+            'Jan Novák',
+            'jan.novak@example.com',
+            '+420.800300300',
+            '2022-01-12T12:10:37+01:00',
+            '2022-01-15T15:10:12+01:00',
+            'account',
+            '2022-01-25T13:10:03+01:00',
+            'purchase',
+            'now',
+            'shipping',
+            '1',
+            'true',
+            'Karlova 1',
+            'Praha',
+            '11000',
+            'CZE',
+            'some-base64-encoded-merchant-data',
+            'cs',
+        )
+        assert msg == "|".join(expected_items)
+
     @responses.activate
     def test_payment_init_success(self):
         resp_url = '/payment/init'

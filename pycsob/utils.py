@@ -56,15 +56,22 @@ def verify(payload, signature, pubkeyfile):
     verifier = PKCS1_v1_5.new(key)
     return verifier.verify(h, b64decode(signature))
 
+def mk_msg_item(value):
+    # Recursively calls itself to process complex data (nested sequences and mappings)
+    if isinstance(value, list) or isinstance(value, tuple):
+        # sequence
+        result = '|'.join([mk_msg_item(item) for item in value])
+    elif isinstance(value, dict) or isinstance(value, OrderedDict):
+        # mapping
+        result = '|'.join([mk_msg_item(item) for item in value.values()])
+    else:
+        # simple value
+        result = str_or_jsbool(value)
+    return result
 
 def mk_msg_for_sign(payload):
     payload = payload.copy()
-    if 'cart' in payload and payload['cart'] not in conf.EMPTY_VALUES:
-        cart_msg = []
-        for one in payload['cart']:
-            cart_msg.extend(one.values())
-        payload['cart'] = '|'.join(map(str_or_jsbool, cart_msg))
-    msg = '|'.join(map(str_or_jsbool, payload.values()))
+    msg = mk_msg_item(payload)
     return msg.encode('utf-8')
 
 
