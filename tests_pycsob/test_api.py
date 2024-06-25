@@ -9,7 +9,7 @@ from unittest.mock import call, patch
 import pytest
 from freezegun import freeze_time
 from pycsob import __version__, conf, utils
-from pycsob.client import CsobClient
+from pycsob.client import CartItem, CsobClient, CustomerData, OrderAddress, OrderData
 from requests.exceptions import HTTPError
 from testfixtures import LogCapture
 from urllib3_mock import Responses
@@ -19,6 +19,124 @@ PAY_ID = '34ae55eb69e2cBF'
 USER_AGENT = "'py-csob/%s'" % __version__
 
 responses = Responses(package='requests.packages.urllib3')
+
+
+class CartItemTests(TestCase):
+
+    def test_to_dict(self):
+        cart_item = CartItem(name="01234567890123456789xxx", quantity=5, amount=1000)
+        expected = OrderedDict([
+            ("name", "01234567890123456789"),  # trimmed to 20 chars
+            ("quantity", 5),
+            ("amount", 1000),
+        ])
+        self.assertEqual(cart_item.to_dict(), expected)
+
+    def test_to_dict_description(self):
+        cart_item = CartItem(name="test", quantity=5, amount=1000, description="x" * 50)
+        expected = OrderedDict([
+            ("name", "test"),
+            ("quantity", 5),
+            ("amount", 1000),
+            ("description", "x" * 40),  # trimmed to 40 chars
+        ])
+        self.assertEqual(cart_item.to_dict(), expected)
+
+
+class CustomerDataTests(TestCase):
+
+    def test_to_dict_minimum(self):
+        customer_data = CustomerData(name="test " * 10)
+        expected = OrderedDict([
+            ("name", "test " * 9),  # trimmed to 45 chars
+        ])
+        self.assertEqual(customer_data.to_dict(), expected)
+
+    def test_to_dict_complex(self):
+        customer_data = CustomerData(
+            name="test",
+            mobile_phone="+420.123456789",
+            account_created_at="2024-06-25T13:30:15+02:00",
+            account_changed_at="2024-06-25T15:21:07+02:00",
+            login_auth="account",
+            login_auth_at="2024-06-26T08:53:47+02:00"
+        )
+        expected = OrderedDict([
+            ("name", "test"),
+            ("mobilePhone", "+420.123456789"),
+            ("account", OrderedDict([
+                ("createdAt", "2024-06-25T13:30:15+02:00"),
+                ("changedAt", "2024-06-25T15:21:07+02:00"),
+            ])),
+            ("login", OrderedDict([
+                ("auth", "account"),
+                ("authAt", "2024-06-26T08:53:47+02:00"),
+            ])),
+        ])
+        self.assertEqual(customer_data.to_dict(), expected)
+
+
+class OrderDataTests(TestCase):
+
+    def test_address(self):
+        address = OrderAddress(
+            address_1="Address 1",
+            address_2="0123456789" * 8,
+            city="City",
+            zip="123 45",
+            country="CZ",
+        )
+        expected = OrderedDict([
+            ("address1", "Address 1"),
+            ("address2", "0123456789" * 5),  # trimmed to 50 chars
+            ("city", "City"),
+            ("zip", "123 45"),
+            ("country", "CZ"),
+        ])
+        self.assertEqual(address.to_dict(), expected)
+
+    def test_order_simple(self):
+        order = OrderData(
+            type="purchase",
+            availability="now",
+        )
+        expected = OrderedDict([
+            ("type", "purchase"),
+            ("availability", "now"),
+        ])
+        self.assertEqual(order.to_dict(), expected)
+
+    def test_order_complex(self):
+        address = OrderAddress(
+            address_1="Address 1",
+            city="City",
+            zip="123 45",
+            country="CZ",
+        )
+        order = OrderData(
+            type="purchase",
+            availability="now",
+            address_match=True,
+            billing=address,
+            giftcards_total_amount=6,
+            giftcards_currency="USD",
+        )
+        expected = OrderedDict([
+            ("type", "purchase"),
+            ("availability", "now"),
+            ("addressMatch", True),
+            ("billing", OrderedDict([
+                ("address1", "Address 1"),
+                ("city", "City"),
+                ("zip", "123 45"),
+                ("country", "CZ"),
+            ])),
+            ("giftcards", OrderedDict([
+                ("totalAmount", 6),
+                ("currency", "USD"),
+            ])),
+        ])
+        self.assertEqual(order.to_dict(), expected)
 
 
 @freeze_time("2019-05-02 16:14:26")
@@ -103,60 +221,59 @@ class CsobClientTests(TestCase):
         assert utils.verify(payload, sig, KEY_PATH)
 
     def test_complex_message_for_sign(self):
-        data = {
-            "merchantId": self.c.merchant_id,
-            "orderNo": "5547",
-            "dttm": utils.dttm(),
-            "payOperation": "payment",
-            "payMethod": "card",
-            "totalAmount": 123400,
-            "currency": "CZK",
-            "closePayment": True,
-            "returnUrl": "https://shop.example.com/return",
-            "returnMethod": "POST",
-            "cart": [
-                {
-                    "name": "Wireless headphones",
-                    "quantity": 1,
-                    "amount": 123400,
-                },
-                {
-                    "name": "Shipping",
-                    "quantity": 1,
-                    "amount": 0,
-                    "description": "DPL",
-                },
-            ],
-            "customer": {
-                "name":"Jan Novák",
-                "email":"jan.novak@example.com",
-                "mobilePhone":"+420.800300300",
-                "account": {
-                    "createdAt":"2022-01-12T12:10:37+01:00",
-                    "changedAt":"2022-01-15T15:10:12+01:00",
-                },
-                "login": {
-                    "auth": "account",
-                    "authAt": "2022-01-25T13:10:03+01:00",
-                }
-            },
-            "order": {
-                "type": "purchase",
-                "availability": "now",
-                "delivery": "shipping",
-                "deliveryMode": "1",
-                "addressMatch": True,
-                "billing": {
-                    "address1": "Karlova 1",
-                    "city": "Praha",
-                    "zip": "11000",
-                    "country": "CZE",
-                },
-            },
-            "merchantData": "some-base64-encoded-merchant-data",
-            "language": "cs",
-        }
-        pairs = ((k, v) for k, v in data.items())
+        pairs = (
+            ("merchantId", self.c.merchant_id),
+            ("orderNo", "5547"),
+            ("dttm", utils.dttm()),
+            ("payOperation", "payment"),
+            ("payMethod", "card"),
+            ("totalAmount", 123400),
+            ("currency", "CZK"),
+            ("closePayment", True),
+            ("returnUrl", "https://shop.example.com/return"),
+            ("returnMethod", "POST"),
+            ("cart", [
+                OrderedDict([
+                    ("name", "Wireless headphones"),
+                    ("quantity", 1),
+                    ("amount", 123400),
+                ]),
+                OrderedDict([
+                    ("name", "Shipping"),
+                    ("quantity", 1),
+                    ("amount", 0),
+                    ("description", "DPL"),
+                ]),
+            ]),
+            ("customer", OrderedDict([
+                ("name", "Jan Novák"),
+                ("email","jan.novak@example.com"),
+                ("mobilePhone", "+420.800300300"),
+                ("account", OrderedDict([
+                    ("createdAt","2022-01-12T12:10:37+01:00"),
+                    ("changedAt","2022-01-15T15:10:12+01:00"),
+                ])),
+                ("login", OrderedDict([
+                    ("auth", "account"),
+                    ("authAt", "2022-01-25T13:10:03+01:00"),
+                ])),
+            ])),
+            ("order", OrderedDict([
+                ("type", "purchase"),
+                ("availability", "now"),
+                ("delivery", "shipping"),
+                ("deliveryMode", "1"),
+                ("addressMatch", True),
+                ("billing", OrderedDict([
+                    ("address1", "Karlova 1"),
+                    ("city", "Praha"),
+                    ("zip", "11000"),
+                    ("country", "CZE"),
+                ])),
+            ])),
+            ("merchantData", "some-base64-encoded-merchant-data"),
+            ("language", "cs"),
+        )
         payload = utils.mk_payload(KEY_PATH, pairs)
         sig = payload.pop('signature')
         assert utils.verify(payload, sig, KEY_PATH)
@@ -235,18 +352,42 @@ class CsobClientTests(TestCase):
         )
 
     @responses.activate
+    def test_payment_init_complex_data(self):
+        resp_url = '/payment/init'
+        resp_payload = utils.mk_payload(KEY_PATH, pairs=(
+            ('payId', PAY_ID),
+            ('dttm', utils.dttm()),
+            ('resultCode', conf.RETURN_CODE_OK),
+            ('resultMessage', 'OK'),
+            ('paymentStatus', 1)
+        ))
+        responses.add(responses.POST, resp_url, body=json.dumps(resp_payload), status=200)
+
+        cart_item = CartItem(name="test", quantity=5, amount=1000)
+        customer_data = CustomerData(name="Karel Sedlo", email="karel@sadlo.cz")
+        order_data = OrderData(type="purchase", availability="preorder")
+        self.c.payment_init(order_no=500, total_amount='5000', return_url='http://example.com',
+                                  description='Nějaký popis', cart=[cart_item], customer_data=customer_data,
+                                  order=order_data).payload
+
+        self.log_handler.check_present(
+            ('pycsob', 'INFO', 'Pycsob request POST: https://gw.cz/payment/init; Data: {"merchantId": '
+            '"MERCHANT", "orderNo": "500", "dttm": "20190502161426", "payOperation": '
+            '"payment", "payMethod": "card", "totalAmount": "5000", "currency": "CZK", '
+            '"closePayment": true, "returnUrl": "http://example.com", "returnMethod": '
+            '"POST", "cart": [{"name": "test", "quantity": 5, "amount": 1000}], '
+            '"customer": {"name": "Karel Sedlo", "email": "karel@sadlo.cz"}, "order": '
+            '{"type": "purchase", "availability": "preorder"}, "language": "cs", '
+            '"ttlSec": 600, "signature": '
+            '"XXvDDiGA/J7tRLss/14VDYF60Uk2FQqsRzu5v6PESd6l1LJ6WHbwQqT1TCVFFb2VwHdlQqwb10Ha5LpD+ovaiw=="}; '
+            'Json: None; {}'),
+        )
+
+    @responses.activate
     def test_payment_init_bad_cart(self):
         cart = [
-            OrderedDict([
-                ('name', 'Order in sho XYZ'),
-                ('quantity', 5),
-                ('amount', 12345),
-            ]),
-            OrderedDict([
-                ('name', 'Postage'),
-                ('quantity', 1),
-                ('amount', 0),
-            ])
+            CartItem(name='Order in sho XYZ', quantity=5, amount=12345),
+            CartItem(name='Postage', quantity=1, amount=0),
         ]
         resp_payload = utils.mk_payload(KEY_PATH, pairs=(
             ('payId', PAY_ID),

@@ -1,8 +1,10 @@
 # coding: utf-8
-from base64 import b64encode, b64decode
+from base64 import b64decode
 import json
 import requests.adapters
 from collections import OrderedDict
+from dataclasses import dataclass
+from typing import Any, List, Optional, Union
 
 from . import conf, utils
 
@@ -15,6 +17,149 @@ class HTTPAdapter(requests.adapters.HTTPAdapter):
     def send(self, request, **kwargs):
         kwargs.setdefault('timeout', conf.HTTP_TIMEOUT)
         return super(HTTPAdapter, self).send(request, **kwargs)
+
+@dataclass
+class CartItem:
+    """Cart item for creating card payment."""
+    name: str
+    quantity: int
+    amount: int
+    description: Optional[str] = None
+
+    def to_dict(self) -> OrderedDict[str, Any]:
+        """Tranform to ordered dictionary."""
+        pairs = (
+            ("name", self.name[:20]),
+            ("quantity", self.quantity),
+            ("amount", self.amount),
+            ("description", self.description[:40] if self.description else None),
+        )
+        return OrderedDict([(k, v) for k, v in pairs if v not in conf.EMPTY_VALUES])
+
+
+@dataclass
+class CustomerData:
+    """Customer data for creating card payment."""
+    name: str
+    email: Optional[str] = None
+    home_phone: Optional[str] = None
+    work_phone: Optional[str] = None
+    mobile_phone: Optional[str] = None
+
+    # Account data
+    account_created_at: Optional[str] = None
+    account_changed_at: Optional[str] = None
+    account_changed_pwd_at: Optional[str] = None
+    account_order_history: Optional[int] = None
+    account_payments_day: Optional[int] = None
+    account_payments_year: Optional[int] = None
+    account_one_click_adds: Optional[int] = None
+    account_suspicious: Optional[bool] = None
+
+    # Login data
+    login_auth: Optional[str] = None
+    login_auth_at: Optional[str] = None
+    login_auth_data: Optional[str] = None
+
+    def to_dict(self) -> OrderedDict[str, Any]:
+        """Tranform to ordered dictionary."""
+        account_pairs = (
+            ("createdAt", self.account_created_at),
+            ("changedAt", self.account_changed_at),
+            ("changedPwdAt", self.account_changed_pwd_at),
+            ("orderHistory", self.account_order_history),
+            ("paymentsDay", self.account_payments_day),
+            ("paymentsYear", self.account_payments_year),
+            ("oneclickAdds", self.account_one_click_adds),
+            ("suspicious", self.account_suspicious),
+        )
+        account_dict = OrderedDict([(k, v) for k, v in account_pairs if v not in conf.EMPTY_VALUES])
+        login_pairs = (
+            ("auth", self.login_auth),
+            ("authAt", self.login_auth_at),
+            ("authData", self.login_auth_data),
+        )
+        login_dict = OrderedDict([(k, v) for k, v in login_pairs if v not in conf.EMPTY_VALUES])
+        pairs = (
+            ("name", self.name[:45]),
+            ("email", self.email[:100] if self.email else None),
+            ("homePhone", self.home_phone),
+            ("workPhone", self.work_phone),
+            ("mobilePhone", self.mobile_phone),
+            ("account", account_dict),
+            ("login", login_dict),
+        )
+        return OrderedDict([(k, v) for k, v in pairs if v not in conf.EMPTY_VALUES])
+
+
+@dataclass
+class OrderAddress:
+    """Order address (billing or shipping)."""
+    address_1: str
+    city: str
+    zip: str
+    country: str
+    address_2: Optional[str] = None
+    address_3: Optional[str] = None
+    state: Optional[str] = None
+
+    def to_dict(self) -> OrderedDict[str, Any]:
+        """Tranform to ordered dictionary."""
+        pairs = (
+            ("address1", self.address_1[:50]),
+            ("address2", self.address_2[:50] if self.address_2 is not None else None),
+            ("address3", self.address_3[:50] if self.address_3 is not None else None),
+            ("city", self.city[:50]),
+            ("zip", self.zip[:16]),
+            ("state", self.state if self.state is not None else None),
+            ("country", self.country),
+        )
+        return OrderedDict([(k, v) for k, v in pairs if v not in conf.EMPTY_VALUES])
+
+
+@dataclass
+class OrderData:
+    """Order data for creating card payment."""
+    type: Optional[str] = None
+    availability: Optional[str] = None
+    delivery: Optional[str] = None
+    delivery_mode: Optional[str] = None
+    delivery_email: Optional[str] = None
+    name_match: Optional[bool] = None
+    address_match: Optional[bool] = None
+    billing: Optional[OrderAddress] = None
+    shipping: Optional[OrderAddress] = None
+    shopping_added_at: Optional[str] = None
+    reorder: Optional[bool] = None
+
+    # Giftcards data
+    giftcards_total_amount: Optional[int] = None
+    giftcards_currency: Optional[str] = None
+    giftcards_quantity: Optional[int] = None
+
+    def to_dict(self) -> OrderedDict[str, Any]:
+        """Tranform to ordered dictionary."""
+        giftcards_pairs = (
+            ("totalAmount", self.giftcards_total_amount),
+            ("currency", self.giftcards_currency),
+            ("quantity", self.giftcards_quantity),
+        )
+        giftcards_dict = OrderedDict([(k, v) for k, v in giftcards_pairs if v not in conf.EMPTY_VALUES])
+        pairs = (
+            ("type", self.type),
+            ("availability", self.availability),
+            ("delivery", self.delivery),
+            ("deliveryMode", self.delivery_mode),
+            ("deliveryEmail", self.delivery_email),
+            ("nameMatch", self.name_match),
+            ("addressMatch", self.address_match),
+            ("billing", self.billing.to_dict() if self.billing is not None else None),
+            ("shipping", self.shipping.to_dict() if self.shipping is not None else None),
+            ("shippingAddedAt", self.shopping_added_at),
+            ("reorder", self.reorder),
+            ("giftcards", giftcards_dict),
+        )
+        return OrderedDict([(k, v) for k, v in pairs if v not in conf.EMPTY_VALUES])
 
 
 class CsobClient(object):
@@ -40,11 +185,28 @@ class CsobClient(object):
 
         self._client = session
 
-    def payment_init(self, order_no, total_amount, return_url, description, cart=None,
-                     customer_id=None, currency='CZK', language='cs', close_payment=True,
-                     return_method='POST', pay_operation='payment', ttl_sec=600,
-                     logo_version=None, color_scheme_version=None, merchant_data=None,
-                     customer_data=None, order=None, custom_expiry=None, pay_method='card'):
+    def payment_init(
+        self,
+        order_no: Union[int, str],
+        total_amount: Union[int, str],
+        return_url: str,
+        description: str,
+        cart: Optional[List[CartItem]] = None,
+        customer_id: Optional[str] = None,
+        currency: str = 'CZK',
+        language: str = 'cs',
+        close_payment: bool = True,
+        return_method: str = 'POST',
+        pay_operation: str = 'payment',
+        ttl_sec: int = 600,
+        logo_version: Optional[int] = None,
+        color_scheme_version: Optional[int] = None,
+        merchant_data: Optional[bytearray] = None,
+        customer_data: Optional[CustomerData] = None,
+        order: Optional[OrderData] = None,
+        custom_expiry: Optional[str] = None,
+        pay_method: str = 'card',
+    ) -> OrderedDict[str, Any]:
         """
         Initialize transaction, sum of cart items must be equal to total amount
         If cart is None, we create it for you from total_amount and description values.
@@ -52,16 +214,8 @@ class CsobClient(object):
         Cart example::
 
             cart = [
-                OrderedDict([
-                    ('name', 'Order in sho XYZ'),
-                    ('quantity', 5),
-                    ('amount', 12345),
-                ]),
-                OrderedDict([
-                    ('name', 'Postage'),
-                    ('quantity', 1),
-                    ('amount', 0),
-                ])
+                CartItem(name='Order in sho XYZ', quantity=5, amount=12345),
+                CartItem(name='Postage', quantity=1, amount=0),
             ]
 
         :param order_no: order number
@@ -75,7 +229,7 @@ class CsobClient(object):
         :param currency: supported currencies: 'CZK', 'EUR', 'USD', 'GBP'
         :param close_payment:
         :param return_method: method which be used for return to shop from gateway POST (default) or GET
-        :param pay_operation: `payment` or `oneclickPayment`
+        :param pay_operation: `payment`, `customPayment` or `oneclickPayment`
         :param ttl_sec: number of seconds to the timeout
         :param logo_version: Logo version number
         :param color_scheme_version: Color scheme version number
@@ -89,13 +243,7 @@ class CsobClient(object):
 
         # fill cart if not set
         if not cart:
-            cart = [
-                OrderedDict([
-                    ('name', description[:20].strip()),
-                    ('quantity', 1),
-                    ('amount', total_amount)
-                ])
-            ]
+            cart = [CartItem(name=description[:20].strip(), quantity=1, amount=total_amount)]
 
         payload = utils.mk_payload(self.f_key, pairs=(
             ('merchantId', self.merchant_id),
@@ -108,9 +256,9 @@ class CsobClient(object):
             ('closePayment', close_payment),
             ('returnUrl', return_url),
             ('returnMethod', return_method),
-            ('cart', cart),
-            ('customer', customer_data),
-            ('order', order),
+            ('cart', [item.to_dict() for item in cart]),
+            ('customer', customer_data.to_dict() if customer_data is not None else None),
+            ('order', order.to_dict() if order is not None else None),
             ('merchantData', utils.encode_merchant_data(merchant_data)),
             ('customerId', customer_id),
             ('language', language[:2]),
