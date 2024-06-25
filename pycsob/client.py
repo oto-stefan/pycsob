@@ -129,7 +129,7 @@ class OrderData:
     address_match: Optional[bool] = None
     billing: Optional[OrderAddress] = None
     shipping: Optional[OrderAddress] = None
-    shopping_added_at: Optional[str] = None
+    shipping_added_at: Optional[str] = None
     reorder: Optional[bool] = None
 
     # Giftcards data
@@ -155,7 +155,7 @@ class OrderData:
             ("addressMatch", self.address_match),
             ("billing", self.billing.to_dict() if self.billing is not None else None),
             ("shipping", self.shipping.to_dict() if self.shipping is not None else None),
-            ("shippingAddedAt", self.shopping_added_at),
+            ("shippingAddedAt", self.shipping_added_at),
             ("reorder", self.reorder),
             ("giftcards", giftcards_dict),
         )
