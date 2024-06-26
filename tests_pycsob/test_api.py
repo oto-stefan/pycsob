@@ -49,7 +49,7 @@ class CustomerDataTests(TestCase):
     def test_to_dict_minimum(self):
         customer_data = CustomerData(name="test " * 10)
         expected = OrderedDict([
-            ("name", "test " * 9),  # trimmed to 45 chars
+            ("name", "test " * 8 + "test"),  # trimmed to 45 chars + space stripped off
         ])
         self.assertEqual(customer_data.to_dict(), expected)
 

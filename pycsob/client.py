@@ -54,10 +54,10 @@ class CartItem(ConvertMixin):
     description: Optional[str] = None
     
     def _format_name(self, value: str) -> str:
-        return value[:20]
+        return value[:20].rstrip()
     
     def _format_description(self, value: str) -> str:
-        return value[:40]
+        return value[:40].rstrip()
 
 
 @dataclass
@@ -117,10 +117,10 @@ class CustomerData(ConvertMixin):
     login: Optional[CustomerLogin] = None
     
     def _format_name(self, value: str) -> str:
-        return value[:45]
+        return value[:45].rstrip()
     
     def _format_description(self, value: str) -> str:
-        return value[:100]
+        return value[:100].rstrip()
 
 
 @dataclass
@@ -137,19 +137,19 @@ class OrderAddress(ConvertMixin):
     state: Optional[str] = None
     
     def _format_address_1(self, value: str) -> str:
-        return value[:50]
+        return value[:50].rstrip()
     
     def _format_address_2(self, value: str) -> str:
-        return value[:50]
+        return value[:50].rstrip()
     
     def _format_address_3(self, value: str) -> str:
-        return value[:50]
+        return value[:50].rstrip()
     
     def _format_city(self, value: str) -> str:
-        return value[:50]
+        return value[:50].rstrip()
     
     def _format_zip(self, value: str) -> str:
-        return value[:16]
+        return value[:16].rstrip()
 
     def _fields(self) -> Tuple[str, ...]:
         return ("address_1", "address_2", "address_3", "city", "zip", "state", "country")
@@ -213,7 +213,7 @@ class OrderData(ConvertMixin):
         return value.value
 
     def _format_delivery_email(self, value: str) -> str:
-        return value[:100]
+        return value[:100].rstrip()
 
 
 class CsobClient(object):
