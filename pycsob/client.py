@@ -168,6 +168,7 @@ class OrderGiftcards(ConvertMixin):
 @unique
 class OrderType(Enum):
     """Type of order."""
+    # Documentation: https://github.com/csob/paymentgateway/wiki/Purchase-metadata#order-data-
 
     PURCHASE = "purchase"
     BALANCE = "balance"
@@ -179,6 +180,7 @@ class OrderType(Enum):
 @unique
 class OrderDeliveryMode(Enum):
     """Delivery mode of order."""
+    # Documentation: https://github.com/csob/paymentgateway/wiki/Purchase-metadata#order-data-
 
     ELECTRONIC = "0"
     SAME_DAY = "1"
