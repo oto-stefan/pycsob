@@ -18,6 +18,7 @@ class HTTPAdapter(requests.adapters.HTTPAdapter):
         kwargs.setdefault('timeout', conf.HTTP_TIMEOUT)
         return super(HTTPAdapter, self).send(request, **kwargs)
 
+
 @dataclass
 class CartItem:
     """Cart item for creating card payment."""
@@ -27,12 +28,12 @@ class CartItem:
     description: Optional[str] = None
 
     def to_dict(self) -> OrderedDict[str, Any]:
-        """Tranform to ordered dictionary."""
+        """Transform to ordered dictionary."""
         pairs = (
             ("name", self.name[:20]),
             ("quantity", self.quantity),
             ("amount", self.amount),
-            ("description", self.description[:40] if self.description else None),
+            ("description", self.description[:40] if self.description is not None else None),
         )
         return OrderedDict([(k, v) for k, v in pairs if v not in conf.EMPTY_VALUES])
 
@@ -62,7 +63,7 @@ class CustomerData:
     login_auth_data: Optional[str] = None
 
     def to_dict(self) -> OrderedDict[str, Any]:
-        """Tranform to ordered dictionary."""
+        """Transform to ordered dictionary."""
         account_pairs = (
             ("createdAt", self.account_created_at),
             ("changedAt", self.account_changed_at),
@@ -104,7 +105,7 @@ class OrderAddress:
     state: Optional[str] = None
 
     def to_dict(self) -> OrderedDict[str, Any]:
-        """Tranform to ordered dictionary."""
+        """Transform to ordered dictionary."""
         pairs = (
             ("address1", self.address_1[:50]),
             ("address2", self.address_2[:50] if self.address_2 is not None else None),
@@ -138,7 +139,7 @@ class OrderData:
     giftcards_quantity: Optional[int] = None
 
     def to_dict(self) -> OrderedDict[str, Any]:
-        """Tranform to ordered dictionary."""
+        """Transform to ordered dictionary."""
         giftcards_pairs = (
             ("totalAmount", self.giftcards_total_amount),
             ("currency", self.giftcards_currency),
