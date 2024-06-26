@@ -9,7 +9,8 @@ from unittest.mock import call, patch
 import pytest
 from freezegun import freeze_time
 from pycsob import __version__, conf, utils
-from pycsob.client import CartItem, CsobClient, CustomerData, OrderAddress, OrderData
+from pycsob.client import (CartItem, CsobClient, CustomerAccount, CustomerData, CustomerLogin, CustomerLoginType,
+                           OrderAddress, OrderData, OrderGiftcards, OrderType)
 from requests.exceptions import HTTPError
 from testfixtures import LogCapture
 from urllib3_mock import Responses
@@ -56,10 +57,8 @@ class CustomerDataTests(TestCase):
         customer_data = CustomerData(
             name="test",
             mobile_phone="+420.123456789",
-            account_created_at="2024-06-25T13:30:15+02:00",
-            account_changed_at="2024-06-25T15:21:07+02:00",
-            login_auth="account",
-            login_auth_at="2024-06-26T08:53:47+02:00"
+            account = CustomerAccount(created_at="2024-06-25T13:30:15+02:00", changed_at="2024-06-25T15:21:07+02:00"),
+            login = CustomerLogin(auth=CustomerLoginType.ACCOUNT, auth_at="2024-06-26T08:53:47+02:00"),
         )
         expected = OrderedDict([
             ("name", "test"),
@@ -97,7 +96,7 @@ class OrderDataTests(TestCase):
 
     def test_order_simple(self):
         order = OrderData(
-            type="purchase",
+            type=OrderType.PURCHASE,
             availability="now",
         )
         expected = OrderedDict([
@@ -114,12 +113,11 @@ class OrderDataTests(TestCase):
             country="CZ",
         )
         order = OrderData(
-            type="purchase",
+            type=OrderType.PURCHASE,
             availability="now",
             address_match=True,
             billing=address,
-            giftcards_total_amount=6,
-            giftcards_currency="USD",
+            giftcards=OrderGiftcards(total_amount=6, currency="USD"),
         )
         expected = OrderedDict([
             ("type", "purchase"),
@@ -365,7 +363,7 @@ class CsobClientTests(TestCase):
 
         cart_item = CartItem(name="test", quantity=5, amount=1000)
         customer_data = CustomerData(name="Karel Sedlo", email="karel@sadlo.cz")
-        order_data = OrderData(type="purchase", availability="preorder")
+        order_data = OrderData(type=OrderType.PURCHASE, availability="preorder")
         self.c.payment_init(order_no=500, total_amount='5000', return_url='http://example.com',
                                   description='Nějaký popis', cart=[cart_item], customer_data=customer_data,
                                   order=order_data).payload

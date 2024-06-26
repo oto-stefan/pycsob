@@ -3,8 +3,9 @@ from base64 import b64decode
 import json
 import requests.adapters
 from collections import OrderedDict
-from dataclasses import dataclass
-from typing import Any, List, Optional, Union
+from dataclasses import dataclass, fields
+from enum import Enum, unique
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from . import conf, utils
 
@@ -19,83 +20,114 @@ class HTTPAdapter(requests.adapters.HTTPAdapter):
         return super(HTTPAdapter, self).send(request, **kwargs)
 
 
+class ConvertMixin:
+    """Convert instance into ordered dict."""
+    
+    def _to_camel_case(self, name: str) -> str:
+        """Convert name to camel case form."""
+        parts = name.split("_")
+        return parts[0] + "".join(i.title() for i in parts[1:])
+
+    def _fields(self) -> Tuple[str, ...]:
+        return (i.name for i in fields(self))
+
+    def to_dict(self) -> Dict[str, Union[str, Dict]]:
+        data = []
+        for name in self._fields():
+            value = getattr(self, name)
+            if value in conf.EMPTY_VALUES:
+                continue
+            if hasattr(value, 'to_dict'):
+                value = value.to_dict()
+            data.append((self._to_camel_case(name), getattr(self, f"_format_{name}", lambda v: v)(value)))
+        return OrderedDict(data)
+
+
 @dataclass
-class CartItem:
+class CartItem(ConvertMixin):
     """Cart item for creating card payment."""
+    # Documentation: https://github.com/csob/paymentgateway/wiki/Basic-methods#item---cart-item-object-cart-
+
     name: str
     quantity: int
     amount: int
     description: Optional[str] = None
-
-    def to_dict(self) -> OrderedDict[str, Any]:
-        """Transform to ordered dictionary."""
-        pairs = (
-            ("name", self.name[:20]),
-            ("quantity", self.quantity),
-            ("amount", self.amount),
-            ("description", self.description[:40] if self.description is not None else None),
-        )
-        return OrderedDict([(k, v) for k, v in pairs if v not in conf.EMPTY_VALUES])
+    
+    def _format_name(self, value: str) -> str:
+        return value[:20]
+    
+    def _format_description(self, value: str) -> str:
+        return value[:40]
 
 
 @dataclass
-class CustomerData:
+class CustomerAccount(ConvertMixin):
+    """Customer account data."""
+    # Documentation: https://github.com/csob/paymentgateway/wiki/Purchase-metadata#customeraccount-data-
+
+    created_at: Optional[str] = None
+    changed_at: Optional[str] = None
+    changed_pwd_at: Optional[str] = None
+    order_history: Optional[int] = None
+    payments_day: Optional[int] = None
+    payments_year: Optional[int] = None
+    one_click_adds: Optional[int] = None
+    suspicious: Optional[bool] = None
+
+
+@unique
+class CustomerLoginType(Enum):
+    """Type of customer login."""
+    # Documentation: https://github.com/csob/paymentgateway/wiki/Purchase-metadata#customerlogin-data-
+
+    GUEST = "guest"
+    ACCOUNT = "account"
+    FEDERATED = "federated"
+    ISSUER = "issuer"
+    THIRDPARTY = "thirdparty"
+    FIDO = "fido"
+    FIDO_SIGNED = "fido_signed"
+    API = "api"
+
+
+@dataclass
+class CustomerLogin(ConvertMixin):
+    """Customer login data."""
+    # Documentation: https://github.com/csob/paymentgateway/wiki/Purchase-metadata#customerlogin-data-
+
+    auth: Optional[CustomerLoginType] = None
+    auth_at: Optional[str] = None
+    auth_data: Optional[str] = None
+
+    def _format_auth(self, value: CustomerLoginType) -> str:
+        return value.value
+
+
+@dataclass
+class CustomerData(ConvertMixin):
     """Customer data for creating card payment."""
+    # Documentation: https://github.com/csob/paymentgateway/wiki/Purchase-metadata#customer-data-
+
     name: str
     email: Optional[str] = None
     home_phone: Optional[str] = None
     work_phone: Optional[str] = None
     mobile_phone: Optional[str] = None
-
-    # Account data
-    account_created_at: Optional[str] = None
-    account_changed_at: Optional[str] = None
-    account_changed_pwd_at: Optional[str] = None
-    account_order_history: Optional[int] = None
-    account_payments_day: Optional[int] = None
-    account_payments_year: Optional[int] = None
-    account_one_click_adds: Optional[int] = None
-    account_suspicious: Optional[bool] = None
-
-    # Login data
-    login_auth: Optional[str] = None
-    login_auth_at: Optional[str] = None
-    login_auth_data: Optional[str] = None
-
-    def to_dict(self) -> OrderedDict[str, Any]:
-        """Transform to ordered dictionary."""
-        account_pairs = (
-            ("createdAt", self.account_created_at),
-            ("changedAt", self.account_changed_at),
-            ("changedPwdAt", self.account_changed_pwd_at),
-            ("orderHistory", self.account_order_history),
-            ("paymentsDay", self.account_payments_day),
-            ("paymentsYear", self.account_payments_year),
-            ("oneclickAdds", self.account_one_click_adds),
-            ("suspicious", self.account_suspicious),
-        )
-        account_dict = OrderedDict([(k, v) for k, v in account_pairs if v not in conf.EMPTY_VALUES])
-        login_pairs = (
-            ("auth", self.login_auth),
-            ("authAt", self.login_auth_at),
-            ("authData", self.login_auth_data),
-        )
-        login_dict = OrderedDict([(k, v) for k, v in login_pairs if v not in conf.EMPTY_VALUES])
-        pairs = (
-            ("name", self.name[:45]),
-            ("email", self.email[:100] if self.email else None),
-            ("homePhone", self.home_phone),
-            ("workPhone", self.work_phone),
-            ("mobilePhone", self.mobile_phone),
-            ("account", account_dict),
-            ("login", login_dict),
-        )
-        return OrderedDict([(k, v) for k, v in pairs if v not in conf.EMPTY_VALUES])
+    account: Optional[CustomerAccount] = None
+    login: Optional[CustomerLogin] = None
+    
+    def _format_name(self, value: str) -> str:
+        return value[:45]
+    
+    def _format_description(self, value: str) -> str:
+        return value[:100]
 
 
 @dataclass
-class OrderAddress:
+class OrderAddress(ConvertMixin):
     """Order address (billing or shipping)."""
+    # Documentation: https://github.com/csob/paymentgateway/wiki/Purchase-metadata#orderaddress-data-
+
     address_1: str
     city: str
     zip: str
@@ -103,28 +135,66 @@ class OrderAddress:
     address_2: Optional[str] = None
     address_3: Optional[str] = None
     state: Optional[str] = None
+    
+    def _format_address_1(self, value: str) -> str:
+        return value[:50]
+    
+    def _format_address_2(self, value: str) -> str:
+        return value[:50]
+    
+    def _format_address_3(self, value: str) -> str:
+        return value[:50]
+    
+    def _format_city(self, value: str) -> str:
+        return value[:50]
+    
+    def _format_zip(self, value: str) -> str:
+        return value[:16]
 
-    def to_dict(self) -> OrderedDict[str, Any]:
-        """Transform to ordered dictionary."""
-        pairs = (
-            ("address1", self.address_1[:50]),
-            ("address2", self.address_2[:50] if self.address_2 is not None else None),
-            ("address3", self.address_3[:50] if self.address_3 is not None else None),
-            ("city", self.city[:50]),
-            ("zip", self.zip[:16]),
-            ("state", self.state if self.state is not None else None),
-            ("country", self.country),
-        )
-        return OrderedDict([(k, v) for k, v in pairs if v not in conf.EMPTY_VALUES])
+    def _fields(self) -> Tuple[str, ...]:
+        return ("address_1", "address_2", "address_3", "city", "zip", "state", "country")
 
 
 @dataclass
-class OrderData:
+class OrderGiftcards(ConvertMixin):
+    """Order giftcards data."""
+    # Documentation: https://github.com/csob/paymentgateway/wiki/Purchase-metadata#ordergiftcards-data-
+
+    total_amount: Optional[int] = None
+    currency: Optional[str] = None
+    quantity: Optional[int] = None
+
+
+@unique
+class OrderType(Enum):
+    """Type of order."""
+
+    PURCHASE = "purchase"
+    BALANCE = "balance"
+    PREPAID = "prepaid"
+    CASH = "cash"
+    CHECK = "check"
+
+
+@unique
+class OrderDeliveryMode(Enum):
+    """Delivery mode of order."""
+
+    ELECTRONIC = "0"
+    SAME_DAY = "1"
+    NEXT_DAY = "2"
+    LATER = "3"
+
+
+@dataclass
+class OrderData(ConvertMixin):
     """Order data for creating card payment."""
-    type: Optional[str] = None
+    # Documentation: https://github.com/csob/paymentgateway/wiki/Purchase-metadata#order-data-
+
+    type: Optional[OrderType] = None
     availability: Optional[str] = None
     delivery: Optional[str] = None
-    delivery_mode: Optional[str] = None
+    delivery_mode: Optional[OrderDeliveryMode] = None
     delivery_email: Optional[str] = None
     name_match: Optional[bool] = None
     address_match: Optional[bool] = None
@@ -132,35 +202,16 @@ class OrderData:
     shipping: Optional[OrderAddress] = None
     shipping_added_at: Optional[str] = None
     reorder: Optional[bool] = None
+    giftcards: Optional[OrderGiftcards] = None
 
-    # Giftcards data
-    giftcards_total_amount: Optional[int] = None
-    giftcards_currency: Optional[str] = None
-    giftcards_quantity: Optional[int] = None
+    def _format_type(self, value: OrderType) -> str:
+        return value.value
 
-    def to_dict(self) -> OrderedDict[str, Any]:
-        """Transform to ordered dictionary."""
-        giftcards_pairs = (
-            ("totalAmount", self.giftcards_total_amount),
-            ("currency", self.giftcards_currency),
-            ("quantity", self.giftcards_quantity),
-        )
-        giftcards_dict = OrderedDict([(k, v) for k, v in giftcards_pairs if v not in conf.EMPTY_VALUES])
-        pairs = (
-            ("type", self.type),
-            ("availability", self.availability),
-            ("delivery", self.delivery),
-            ("deliveryMode", self.delivery_mode),
-            ("deliveryEmail", self.delivery_email),
-            ("nameMatch", self.name_match),
-            ("addressMatch", self.address_match),
-            ("billing", self.billing.to_dict() if self.billing is not None else None),
-            ("shipping", self.shipping.to_dict() if self.shipping is not None else None),
-            ("shippingAddedAt", self.shipping_added_at),
-            ("reorder", self.reorder),
-            ("giftcards", giftcards_dict),
-        )
-        return OrderedDict([(k, v) for k, v in pairs if v not in conf.EMPTY_VALUES])
+    def _format_delivery_mode(self, value: OrderDeliveryMode) -> str:
+        return value.value
+
+    def _format_delivery_email(self, value: str) -> str:
+        return value[:100]
 
 
 class CsobClient(object):
