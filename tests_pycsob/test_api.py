@@ -10,7 +10,7 @@ import pytest
 from freezegun import freeze_time
 from pycsob import __version__, conf, utils
 from pycsob.client import (CartItem, CsobClient, CustomerAccount, CustomerData, CustomerLogin, CustomerLoginType,
-                           OrderAddress, OrderData, OrderGiftcards, OrderType)
+                           OrderAddress, Order, OrderGiftcards, OrderType)
 from requests.exceptions import HTTPError
 from testfixtures import LogCapture
 from urllib3_mock import Responses
@@ -56,9 +56,9 @@ class CustomerDataTests(TestCase):
     def test_to_dict_complex(self):
         customer_data = CustomerData(
             name="test",
-            mobile_phone="+420.123456789",
-            account = CustomerAccount(created_at="2024-06-25T13:30:15+02:00", changed_at="2024-06-25T15:21:07+02:00"),
-            login = CustomerLogin(auth=CustomerLoginType.ACCOUNT, auth_at="2024-06-26T08:53:47+02:00"),
+            mobilePhone="+420.123456789",
+            account = CustomerAccount(createdAt="2024-06-25T13:30:15+02:00", changedAt="2024-06-25T15:21:07+02:00"),
+            login = CustomerLogin(auth=CustomerLoginType.ACCOUNT, authAt="2024-06-26T08:53:47+02:00"),
         )
         expected = OrderedDict([
             ("name", "test"),
@@ -75,12 +75,12 @@ class CustomerDataTests(TestCase):
         self.assertEqual(customer_data.to_dict(), expected)
 
 
-class OrderDataTests(TestCase):
+class OrderTests(TestCase):
 
     def test_address(self):
         address = OrderAddress(
-            address_1="Address 1",
-            address_2="0123456789" * 8,
+            address1="Address 1",
+            address2="0123456789" * 8,
             city="City",
             zip="123 45",
             country="CZ",
@@ -95,7 +95,7 @@ class OrderDataTests(TestCase):
         self.assertEqual(address.to_dict(), expected)
 
     def test_order_simple(self):
-        order = OrderData(
+        order = Order(
             type=OrderType.PURCHASE,
             availability="now",
         )
@@ -107,17 +107,17 @@ class OrderDataTests(TestCase):
 
     def test_order_complex(self):
         address = OrderAddress(
-            address_1="Address 1",
+            address1="Address 1",
             city="City",
             zip="123 45",
             country="CZ",
         )
-        order = OrderData(
+        order = Order(
             type=OrderType.PURCHASE,
             availability="now",
-            address_match=True,
+            addressMatch=True,
             billing=address,
-            giftcards=OrderGiftcards(total_amount=6, currency="USD"),
+            giftcards=OrderGiftcards(totalAmount=6, currency="USD"),
         )
         expected = OrderedDict([
             ("type", "purchase"),
@@ -363,10 +363,10 @@ class CsobClientTests(TestCase):
 
         cart_item = CartItem(name="test", quantity=5, amount=1000)
         customer_data = CustomerData(name="Karel Sedlo", email="karel@sadlo.cz")
-        order_data = OrderData(type=OrderType.PURCHASE, availability="preorder")
+        order = Order(type=OrderType.PURCHASE, availability="preorder")
         self.c.payment_init(order_no=500, total_amount='5000', return_url='http://example.com',
                                   description='Nějaký popis', cart=[cart_item], customer_data=customer_data,
-                                  order=order_data).payload
+                                  order=order).payload
 
         self.log_handler.check_present(
             ('pycsob', 'INFO', 'Pycsob request POST: https://gw.cz/payment/init; Data: {"merchantId": '

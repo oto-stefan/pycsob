@@ -5,7 +5,7 @@ import requests.adapters
 from collections import OrderedDict
 from dataclasses import dataclass, fields
 from enum import Enum, unique
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 
 from . import conf, utils
 
@@ -22,24 +22,16 @@ class HTTPAdapter(requests.adapters.HTTPAdapter):
 
 class ConvertMixin:
     """Convert instance into ordered dict."""
-    
-    def _to_camel_case(self, name: str) -> str:
-        """Convert name to camel case form."""
-        parts = name.split("_")
-        return parts[0] + "".join(i.title() for i in parts[1:])
-
-    def _fields(self) -> Tuple[str, ...]:
-        return (i.name for i in fields(self))
 
     def to_dict(self) -> Dict[str, Union[str, Dict]]:
         data = []
-        for name in self._fields():
-            value = getattr(self, name)
+        for field in fields(self):
+            value = getattr(self, field.name)
             if value in conf.EMPTY_VALUES:
                 continue
             if hasattr(value, 'to_dict'):
                 value = value.to_dict()
-            data.append((self._to_camel_case(name), getattr(self, f"_format_{name}", lambda v: v)(value)))
+            data.append((field.name, getattr(self, f"_format_{field.name}", lambda v: v)(value)))
         return OrderedDict(data)
 
 
@@ -65,13 +57,13 @@ class CustomerAccount(ConvertMixin):
     """Customer account data."""
     # Documentation: https://github.com/csob/paymentgateway/wiki/Purchase-metadata#customeraccount-data-
 
-    created_at: Optional[str] = None
-    changed_at: Optional[str] = None
-    changed_pwd_at: Optional[str] = None
-    order_history: Optional[int] = None
-    payments_day: Optional[int] = None
-    payments_year: Optional[int] = None
-    one_click_adds: Optional[int] = None
+    createdAt: Optional[str] = None
+    changedAt: Optional[str] = None
+    changedPwdAt: Optional[str] = None
+    orderHistory: Optional[int] = None
+    paymentsDay: Optional[int] = None
+    paymentsYear: Optional[int] = None
+    oneclickAdds: Optional[int] = None
     suspicious: Optional[bool] = None
 
 
@@ -96,8 +88,8 @@ class CustomerLogin(ConvertMixin):
     # Documentation: https://github.com/csob/paymentgateway/wiki/Purchase-metadata#customerlogin-data-
 
     auth: Optional[CustomerLoginType] = None
-    auth_at: Optional[str] = None
-    auth_data: Optional[str] = None
+    authAt: Optional[str] = None
+    authData: Optional[str] = None
 
     def _format_auth(self, value: CustomerLoginType) -> str:
         return value.value
@@ -110,9 +102,9 @@ class CustomerData(ConvertMixin):
 
     name: str
     email: Optional[str] = None
-    home_phone: Optional[str] = None
-    work_phone: Optional[str] = None
-    mobile_phone: Optional[str] = None
+    homePhone: Optional[str] = None
+    workPhone: Optional[str] = None
+    mobilePhone: Optional[str] = None
     account: Optional[CustomerAccount] = None
     login: Optional[CustomerLogin] = None
     
@@ -128,21 +120,21 @@ class OrderAddress(ConvertMixin):
     """Order address (billing or shipping)."""
     # Documentation: https://github.com/csob/paymentgateway/wiki/Purchase-metadata#orderaddress-data-
 
-    address_1: str
-    city: str
-    zip: str
-    country: str
-    address_2: Optional[str] = None
-    address_3: Optional[str] = None
+    address1: str
+    address2: Optional[str] = None
+    address3: Optional[str] = None
+    city: str = ""
+    zip: str = ""
+    country: str = ""
     state: Optional[str] = None
     
-    def _format_address_1(self, value: str) -> str:
+    def _format_address1(self, value: str) -> str:
         return value[:50].rstrip()
     
-    def _format_address_2(self, value: str) -> str:
+    def _format_address2(self, value: str) -> str:
         return value[:50].rstrip()
     
-    def _format_address_3(self, value: str) -> str:
+    def _format_address3(self, value: str) -> str:
         return value[:50].rstrip()
     
     def _format_city(self, value: str) -> str:
@@ -151,16 +143,13 @@ class OrderAddress(ConvertMixin):
     def _format_zip(self, value: str) -> str:
         return value[:16].rstrip()
 
-    def _fields(self) -> Tuple[str, ...]:
-        return ("address_1", "address_2", "address_3", "city", "zip", "state", "country")
-
 
 @dataclass
 class OrderGiftcards(ConvertMixin):
     """Order giftcards data."""
     # Documentation: https://github.com/csob/paymentgateway/wiki/Purchase-metadata#ordergiftcards-data-
 
-    total_amount: Optional[int] = None
+    totalAmount: Optional[int] = None
     currency: Optional[str] = None
     quantity: Optional[int] = None
 
@@ -182,37 +171,37 @@ class OrderDeliveryMode(Enum):
     """Delivery mode of order."""
     # Documentation: https://github.com/csob/paymentgateway/wiki/Purchase-metadata#order-data-
 
-    ELECTRONIC = "0"
-    SAME_DAY = "1"
-    NEXT_DAY = "2"
-    LATER = "3"
+    ELECTRONIC = 0
+    SAME_DAY = 1
+    NEXT_DAY = 2
+    LATER = 3
 
 
 @dataclass
-class OrderData(ConvertMixin):
+class Order(ConvertMixin):
     """Order data for creating card payment."""
     # Documentation: https://github.com/csob/paymentgateway/wiki/Purchase-metadata#order-data-
 
     type: Optional[OrderType] = None
     availability: Optional[str] = None
     delivery: Optional[str] = None
-    delivery_mode: Optional[OrderDeliveryMode] = None
-    delivery_email: Optional[str] = None
-    name_match: Optional[bool] = None
-    address_match: Optional[bool] = None
+    deliveryMode: Optional[OrderDeliveryMode] = None
+    deliveryEmail: Optional[str] = None
+    nameMatch: Optional[bool] = None
+    addressMatch: Optional[bool] = None
     billing: Optional[OrderAddress] = None
     shipping: Optional[OrderAddress] = None
-    shipping_added_at: Optional[str] = None
+    shippingAddedAt: Optional[str] = None
     reorder: Optional[bool] = None
     giftcards: Optional[OrderGiftcards] = None
 
     def _format_type(self, value: OrderType) -> str:
         return value.value
 
-    def _format_delivery_mode(self, value: OrderDeliveryMode) -> str:
-        return value.value
+    def _format_deliveryMode(self, value: OrderDeliveryMode) -> str:
+        return str(value.value)
 
-    def _format_delivery_email(self, value: str) -> str:
+    def _format_deliveryEmail(self, value: str) -> str:
         return value[:100].rstrip()
 
 
@@ -257,7 +246,7 @@ class CsobClient(object):
         color_scheme_version: Optional[int] = None,
         merchant_data: Optional[bytearray] = None,
         customer_data: Optional[CustomerData] = None,
-        order: Optional[OrderData] = None,
+        order: Optional[Order] = None,
         custom_expiry: Optional[str] = None,
         pay_method: str = 'card',
     ) -> OrderedDict[str, Any]:
