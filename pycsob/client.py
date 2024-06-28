@@ -3,9 +3,9 @@ from base64 import b64decode
 import json
 import requests.adapters
 from collections import OrderedDict
-from dataclasses import dataclass, fields
+from dataclasses import Field, dataclass, fields
 from enum import Enum, unique
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Iterable, List, Optional, Union
 
 from . import conf, utils
 
@@ -20,18 +20,41 @@ class HTTPAdapter(requests.adapters.HTTPAdapter):
         return super(HTTPAdapter, self).send(request, **kwargs)
 
 
+def reorder_fields(instance: object) -> Iterable[Field]:
+    """Reorder fields of dataclass."""
+    for name in instance._ordered_fields:
+        yield instance.__dataclass_fields__[name]
+
+
 class ConvertMixin:
     """Convert instance into ordered dict."""
 
+    _max_length: Dict[str, int] = {}
+
+    def _to_camel_case(self, name: str) -> str:
+        """Convert name to camel case form."""
+        parts = name.split("_")
+        return parts[0] + "".join(i.title() for i in parts[1:])
+
+    def _format_field(self, name: str, value: Any) -> str:
+        if isinstance(value, Enum):
+            value = str(value.value)
+        elif isinstance(value, str) and name in self._max_length:
+            value = value[:self._max_length[name]].rstrip()
+        else:
+            value = getattr(self, f"_format_{name}", lambda v: v)(value)  # Custom formatting method
+        return value
+
     def to_dict(self) -> Dict[str, Union[str, Dict]]:
         data = []
-        for field in fields(self):
+        get_fields = reorder_fields if hasattr(self, '_ordered_fields') else fields
+        for field in get_fields(self):
             value = getattr(self, field.name)
             if value in conf.EMPTY_VALUES:
                 continue
             if hasattr(value, 'to_dict'):
                 value = value.to_dict()
-            data.append((field.name, getattr(self, f"_format_{field.name}", lambda v: v)(value)))
+            data.append((self._to_camel_case(field.name), self._format_field(field.name, value)))
         return OrderedDict(data)
 
 
@@ -44,12 +67,8 @@ class CartItem(ConvertMixin):
     quantity: int
     amount: int
     description: Optional[str] = None
-    
-    def _format_name(self, value: str) -> str:
-        return value[:20].rstrip()
-    
-    def _format_description(self, value: str) -> str:
-        return value[:40].rstrip()
+
+    _max_length = {"name": 20, "description": 40}
 
 
 @dataclass
@@ -57,13 +76,13 @@ class CustomerAccount(ConvertMixin):
     """Customer account data."""
     # Documentation: https://github.com/csob/paymentgateway/wiki/Purchase-metadata#customeraccount-data-
 
-    createdAt: Optional[str] = None
-    changedAt: Optional[str] = None
-    changedPwdAt: Optional[str] = None
-    orderHistory: Optional[int] = None
-    paymentsDay: Optional[int] = None
-    paymentsYear: Optional[int] = None
-    oneclickAdds: Optional[int] = None
+    created_at: Optional[str] = None
+    changed_at: Optional[str] = None
+    changed_pwd_at: Optional[str] = None
+    order_history: Optional[int] = None
+    payments_day: Optional[int] = None
+    payments_year: Optional[int] = None
+    oneclick_adds: Optional[int] = None
     suspicious: Optional[bool] = None
 
 
@@ -88,31 +107,24 @@ class CustomerLogin(ConvertMixin):
     # Documentation: https://github.com/csob/paymentgateway/wiki/Purchase-metadata#customerlogin-data-
 
     auth: Optional[CustomerLoginType] = None
-    authAt: Optional[str] = None
-    authData: Optional[str] = None
-
-    def _format_auth(self, value: CustomerLoginType) -> str:
-        return value.value
+    auth_at: Optional[str] = None
+    auth_data: Optional[str] = None
 
 
 @dataclass
-class CustomerData(ConvertMixin):
+class Customer(ConvertMixin):
     """Customer data for creating card payment."""
     # Documentation: https://github.com/csob/paymentgateway/wiki/Purchase-metadata#customer-data-
 
     name: str
     email: Optional[str] = None
-    homePhone: Optional[str] = None
-    workPhone: Optional[str] = None
-    mobilePhone: Optional[str] = None
+    home_phone: Optional[str] = None
+    work_phone: Optional[str] = None
+    mobile_phone: Optional[str] = None
     account: Optional[CustomerAccount] = None
     login: Optional[CustomerLogin] = None
-    
-    def _format_name(self, value: str) -> str:
-        return value[:45].rstrip()
-    
-    def _format_description(self, value: str) -> str:
-        return value[:100].rstrip()
+
+    _max_length = {"name": 45, "description": 100}
 
 
 @dataclass
@@ -120,28 +132,16 @@ class OrderAddress(ConvertMixin):
     """Order address (billing or shipping)."""
     # Documentation: https://github.com/csob/paymentgateway/wiki/Purchase-metadata#orderaddress-data-
 
-    address1: str
-    address2: Optional[str] = None
-    address3: Optional[str] = None
-    city: str = ""
-    zip: str = ""
-    country: str = ""
+    address_1: str
+    city: str
+    zip: str
+    country: str
+    address_2: Optional[str] = None
+    address_3: Optional[str] = None
     state: Optional[str] = None
-    
-    def _format_address1(self, value: str) -> str:
-        return value[:50].rstrip()
-    
-    def _format_address2(self, value: str) -> str:
-        return value[:50].rstrip()
-    
-    def _format_address3(self, value: str) -> str:
-        return value[:50].rstrip()
-    
-    def _format_city(self, value: str) -> str:
-        return value[:50].rstrip()
-    
-    def _format_zip(self, value: str) -> str:
-        return value[:16].rstrip()
+
+    _max_length = {"address_1": 50, "address_2": 50, "address_3": 50, "city": 50, "zip": 16}
+    _ordered_fields = ("address_1", "address_2", "address_3", "city", "zip", "country", "state")
 
 
 @dataclass
@@ -149,7 +149,7 @@ class OrderGiftcards(ConvertMixin):
     """Order giftcards data."""
     # Documentation: https://github.com/csob/paymentgateway/wiki/Purchase-metadata#ordergiftcards-data-
 
-    totalAmount: Optional[int] = None
+    total_amount: Optional[int] = None
     currency: Optional[str] = None
     quantity: Optional[int] = None
 
@@ -185,24 +185,17 @@ class Order(ConvertMixin):
     type: Optional[OrderType] = None
     availability: Optional[str] = None
     delivery: Optional[str] = None
-    deliveryMode: Optional[OrderDeliveryMode] = None
-    deliveryEmail: Optional[str] = None
-    nameMatch: Optional[bool] = None
-    addressMatch: Optional[bool] = None
+    delivery_mode: Optional[OrderDeliveryMode] = None
+    delivery_email: Optional[str] = None
+    name_match: Optional[bool] = None
+    address_match: Optional[bool] = None
     billing: Optional[OrderAddress] = None
     shipping: Optional[OrderAddress] = None
-    shippingAddedAt: Optional[str] = None
+    shipping_added_at: Optional[str] = None
     reorder: Optional[bool] = None
     giftcards: Optional[OrderGiftcards] = None
 
-    def _format_type(self, value: OrderType) -> str:
-        return value.value
-
-    def _format_deliveryMode(self, value: OrderDeliveryMode) -> str:
-        return str(value.value)
-
-    def _format_deliveryEmail(self, value: str) -> str:
-        return value[:100].rstrip()
+    _max_length = {"deliveryEmail": 100}
 
 
 class CsobClient(object):
@@ -245,7 +238,7 @@ class CsobClient(object):
         logo_version: Optional[int] = None,
         color_scheme_version: Optional[int] = None,
         merchant_data: Optional[bytearray] = None,
-        customer_data: Optional[CustomerData] = None,
+        customer: Optional[Customer] = None,
         order: Optional[Order] = None,
         custom_expiry: Optional[str] = None,
         pay_method: str = 'card',
@@ -277,7 +270,7 @@ class CsobClient(object):
         :param logo_version: Logo version number
         :param color_scheme_version: Color scheme version number
         :param merchant_data: bytearray of merchant data
-        :param customer_data: Additional customer purchase data
+        :param customer: Additional customer purchase data
         :param order: Additional purchase data related to the order
         :param custom_expiry: Custom payment expiration, format YYYYMMDDHHMMSS
         :param pay_method: 'card' = card payment, 'card#LVP' = card payment with low value payment
@@ -300,7 +293,7 @@ class CsobClient(object):
             ('returnUrl', return_url),
             ('returnMethod', return_method),
             ('cart', [item.to_dict() for item in cart]),
-            ('customer', customer_data.to_dict() if customer_data is not None else None),
+            ('customer', customer.to_dict() if customer is not None else None),
             ('order', order.to_dict() if order is not None else None),
             ('merchantData', utils.encode_merchant_data(merchant_data)),
             ('customerId', customer_id),

@@ -87,6 +87,46 @@ You can check payment status.
     #[Out]#              ('authCode', '042760'),
     #[Out]#              ('dttime', datetime.datetime(2016, 6, 15, 10, 45, 1))])
 
+Structured data (i.e. ``cart``, ``customer`` and ``order``) are passed to ``payment_init`` as dataclasses, for some items
+appropriate enumerations are available.
+
+.. code-block:: python
+
+    data = {
+        "pay_operation": "payment",
+        "pay_method": "card",
+        "currency": "CZK",
+        "close_payment": True,
+        "return_method": "POST",
+        "cart": [
+            CartItem(name="Bezdrátová sluchátka", quantity=2, amount=123400),
+            CartItem(name="Doprava", quantity=1, amount=0, description="DPL"),
+        ],
+        "customer": Customer(
+            name="Jan Novák",
+            email="jan.novak@example.com",
+            mobile_phone="+420 123 456 789",
+            account=CustomerAccount(created_at="2022-01-12T12:10:37+01:00", changed_at="2022-01-15T15:10:12+01:00"),
+            login=CustomerLogin(auth=CustomerLoginType.ACCOUNT, auth_at="2022-01-25T13:10:03+01:00")
+        ),
+        "order": Order(
+            type=OrderType.PURCHASE,
+            availability="now",
+            delivery="shipping",
+            delivery_mode=OrderDeliveryMode.SAME_DAY,
+            address_match=True,
+            billing=OrderAddress(
+                address_1="Karlova 1",
+                city="Praha",
+                zip="11000",
+                country="CZE",
+            ),
+        ),
+        "language": "cs",
+    }
+    r = c.payment_init(16, 123400, "http://twisto.dev/", "Testovací nákup", **data)
+
+
 Custom payments are initialized with ``c.payment_init(pay_operation='customPayment')``, you can optionally set 
 payment validity by ``custom_expiry='YYYYMMDDhhmmss'``.
 
