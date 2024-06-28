@@ -251,7 +251,7 @@ class CsobClient(object):
     def payment_init(
         self,
         order_no: Union[int, str],
-        total_amount: Union[int, str],
+        total_amount: int,
         return_url: str,
         description: str,
         cart: Optional[List[CartItem]] = None,
@@ -306,7 +306,7 @@ class CsobClient(object):
 
         # fill cart if not set
         if not cart:
-            cart = [CartItem(name=description, quantity=1, amount=int(total_amount))]
+            cart = [CartItem(name=description, quantity=1, amount=total_amount)]
 
         payload = utils.mk_payload(self.f_key, pairs=(
             ('merchantId', self.merchant_id),

@@ -333,7 +333,7 @@ class CsobClientTests(TestCase):
             ('paymentStatus', 1)
         ))
         responses.add(responses.POST, resp_url, body=json.dumps(resp_payload), status=200)
-        out = self.c.payment_init(order_no=666, total_amount='66600', return_url='http://example.com',
+        out = self.c.payment_init(order_no=666, total_amount=66600, return_url='http://example.com',
                                   description='Nějaký popis').payload
 
         assert out['paymentStatus'] == conf.PAYMENT_STATUS_INIT
@@ -342,14 +342,14 @@ class CsobClientTests(TestCase):
         self.log_handler.check(
             ('pycsob', 'INFO', 'Pycsob request POST: https://gw.cz/payment/init; Data: {"merchantId": '
             '"MERCHANT", "orderNo": "666", "dttm": "20190502161426", "payOperation": '
-            '"payment", "payMethod": "card", "totalAmount": "66600", "currency": "CZK", '
+            '"payment", "payMethod": "card", "totalAmount": 66600, "currency": "CZK", '
             '"closePayment": true, "returnUrl": "http://example.com", "returnMethod": '
             '"POST", "cart": [{"name": "N\\u011bjak\\u00fd popis", "quantity": 1, '
-            '"amount": "66600"}], "language": "cs", "ttlSec": 600, "signature": '
+            '"amount": 66600}], "language": "cs", "ttlSec": 600, "signature": '
             '"KMLqDJs+vSFqLaEG66i6MtkRZEL6U9HwqT3dPrYh237agzlkPnkXHHrCF2p+Sntzq/UWN03HfDhL5IHSsHvp6Q=="}; '
             'Json: None; {}'),
             ('pycsob', 'DEBUG', "Pycsob request headers: {'content-type': 'application/json', 'user-agent': "
-            + USER_AGENT + ", 'Content-Length': '460'}"),
+            + USER_AGENT + ", 'Content-Length': '456'}"),
             ('pycsob', 'INFO', 'Pycsob response: [200] {"payId": "34ae55eb69e2cBF", "dttm": "20190502161426", '
             '"resultCode": 0, "resultMessage": "OK", "paymentStatus": 1, "signature": '
             '"Zd+PKspUEkrsEyxTmXAwrX3pgfS45Sg35dhMo5Oi0aoI8LoLs3dlyPS9vEXw80fxKyduAl5ws8D0Fu2mXLy9bA=="}'),
@@ -371,14 +371,14 @@ class CsobClientTests(TestCase):
         cart_item = CartItem(name="test", quantity=5, amount=1000)
         customer = Customer(name="Karel Sedlo", email="karel@sadlo.cz")
         order = Order(type=OrderType.PURCHASE, availability="preorder")
-        self.c.payment_init(order_no=500, total_amount='5000', return_url='http://example.com',
+        self.c.payment_init(order_no=500, total_amount=5000, return_url='http://example.com',
                                   description='Nějaký popis', cart=[cart_item], customer=customer,
                                   order=order).payload
 
         self.log_handler.check_present(
             ('pycsob', 'INFO', 'Pycsob request POST: https://gw.cz/payment/init; Data: {"merchantId": '
             '"MERCHANT", "orderNo": "500", "dttm": "20190502161426", "payOperation": '
-            '"payment", "payMethod": "card", "totalAmount": "5000", "currency": "CZK", '
+            '"payment", "payMethod": "card", "totalAmount": 5000, "currency": "CZK", '
             '"closePayment": true, "returnUrl": "http://example.com", "returnMethod": '
             '"POST", "cart": [{"name": "test", "quantity": 5, "amount": 1000}], '
             '"customer": {"name": "Karel Sedlo", "email": "karel@sadlo.cz"}, "order": '
@@ -403,7 +403,7 @@ class CsobClientTests(TestCase):
         ))
         resp_url = '/payment/init'
         responses.add(responses.POST, resp_url, body=json.dumps(resp_payload), status=200)
-        out = self.c.payment_init(order_no=666, total_amount='2200000', return_url='http://',
+        out = self.c.payment_init(order_no=666, total_amount=2200000, return_url='http://',
                                   description='X', cart=cart).payload
 
         assert out['paymentStatus'] == conf.PAYMENT_STATUS_REJECTED
@@ -411,13 +411,13 @@ class CsobClientTests(TestCase):
         self.log_handler.check(
             ('pycsob', 'INFO', 'Pycsob request POST: https://gw.cz/payment/init; Data: {"merchantId": "MERCHANT", '
             '"orderNo": "666", "dttm": "20190502161426", "payOperation": "payment", "payMethod": "card", '
-            '"totalAmount": "2200000", "currency": "CZK", "closePayment": true, '
+            '"totalAmount": 2200000, "currency": "CZK", "closePayment": true, '
             '"returnUrl": "http://", "returnMethod": "POST", "cart": [{"name": "Order in sho XYZ", "quantity": 5, '
             '"amount": 12345}, {"name": "Postage", "quantity": 1, "amount": 0}], "language": "cs", "ttlSec": 600, '
             '"signature": "FcfTzD5ChQXyWAgBMZX+d/QOBbaGKXRusHwpiOaX+Aticygm1D8EzH+MtnMFq+Gp3dcQMTUg0bQKaCXfcQBeiA=="}; '
             'Json: None; {}'),
             ('pycsob', 'DEBUG', "Pycsob request headers: {'content-type': 'application/json', 'user-agent': "
-            + USER_AGENT + ", 'Content-Length': '492'}"),
+            + USER_AGENT + ", 'Content-Length': '490'}"),
             ('pycsob', 'INFO', 'Pycsob response: [200] {"payId": "34ae55eb69e2cBF", "dttm": "20190502161426", '
             '"resultCode": 110, "resultMessage": "Invalid \'cart\' amounts, does not sum to totalAmount", '
             '"paymentStatus": 6, "signature": '
@@ -530,7 +530,7 @@ class CsobClientTests(TestCase):
             ('paymentStatus', 1),
         ))
         responses.add(responses.POST, resp_url, body=json.dumps(resp_payload), status=200)
-        out = self.c.payment_init(order_no=666, total_amount='66600', return_url='http://example.com',
+        out = self.c.payment_init(order_no=666, total_amount=66600, return_url='http://example.com',
                                   description='Fooo', merchant_data=b'Foo').payload
 
         assert out['paymentStatus'] == conf.PAYMENT_STATUS_INIT
@@ -539,13 +539,13 @@ class CsobClientTests(TestCase):
         self.log_handler.check(
             ('pycsob', 'INFO', 'Pycsob request POST: https://gw.cz/payment/init; Data: {"merchantId": "MERCHANT", '
             '"orderNo": "666", "dttm": "20190502161426", "payOperation": "payment", "payMethod": "card", '
-            '"totalAmount": "66600", "currency": "CZK", "closePayment": true, "returnUrl": "http://example.com", '
-            '"returnMethod": "POST", "cart": [{"name": "Fooo", "quantity": 1, "amount": "66600"}], '
+            '"totalAmount": 66600, "currency": "CZK", "closePayment": true, "returnUrl": "http://example.com", '
+            '"returnMethod": "POST", "cart": [{"name": "Fooo", "quantity": 1, "amount": 66600}], '
             '"merchantData": "Rm9v", "language": "cs", "ttlSec": 600, "signature": '
             '"a5jKBePOpjgX0CjUkKFTe3UzedHzFgrvSsVf3NnSZ7uzuFyBIs5QEVxN9QZ8y7LKKRiigEzU8r6GZ3MiEFf9RA=="}; '
             'Json: None; {}'),
             ('pycsob', 'DEBUG', "Pycsob request headers: {'content-type': 'application/json', "
-            "'user-agent': " + USER_AGENT + ", 'Content-Length': '466'}"),
+            "'user-agent': " + USER_AGENT + ", 'Content-Length': '462'}"),
             ('pycsob', 'INFO', 'Pycsob response: [200] {"payId": "34ae55eb69e2cBF", "dttm": "20190502161426", '
             '"resultCode": 0, "resultMessage": "OK", "paymentStatus": 1, "signature": '
             '"Zd+PKspUEkrsEyxTmXAwrX3pgfS45Sg35dhMo5Oi0aoI8LoLs3dlyPS9vEXw80fxKyduAl5ws8D0Fu2mXLy9bA=="}'),
@@ -564,7 +564,7 @@ class CsobClientTests(TestCase):
         ))
         responses.add(responses.POST, resp_url, body=json.dumps(resp_payload), status=200)
         with self.assertRaisesRegex(ValueError, 'Merchant data length encoded to BASE64 is over 255 chars'):
-            self.c.payment_init(order_no=666, total_amount='66600', return_url='http://example.com',
+            self.c.payment_init(order_no=666, total_amount=66600, return_url='http://example.com',
                                 description='Fooo', merchant_data=b'Foo' * 80).payload
         self.log_handler.check()
 
@@ -579,7 +579,7 @@ class CsobClientTests(TestCase):
             ('paymentStatus', 1),
         ))
         responses.add(responses.POST, resp_url, body=json.dumps(resp_payload), status=200)
-        out = self.c.payment_init(order_no=666, total_amount='66600', return_url='http://example.com',
+        out = self.c.payment_init(order_no=666, total_amount=66600, return_url='http://example.com',
                                   description='Fooo', language='cs_CZ.utf8').payload
 
         assert out['paymentStatus'] == conf.PAYMENT_STATUS_INIT
@@ -588,13 +588,13 @@ class CsobClientTests(TestCase):
         self.log_handler.check(
             ('pycsob', 'INFO', 'Pycsob request POST: https://gw.cz/payment/init; Data: {"merchantId": "MERCHANT", '
             '"orderNo": "666", "dttm": "20190502161426", "payOperation": "payment", "payMethod": "card", '
-            '"totalAmount": "66600", "currency": "CZK", "closePayment": true, "returnUrl": "http://example.com", '
-            '"returnMethod": "POST", "cart": [{"name": "Fooo", "quantity": 1, "amount": "66600"}], "language": "cs", '
+            '"totalAmount": 66600, "currency": "CZK", "closePayment": true, "returnUrl": "http://example.com", '
+            '"returnMethod": "POST", "cart": [{"name": "Fooo", "quantity": 1, "amount": 66600}], "language": "cs", '
             '"ttlSec": 600, "signature": '
             '"XH4RdW0dXrDh81dUHNKMrF+LVfZZtIOKJXzVUSxB/RVKK2Sb59SJvl8jonujNZC78GJkr5THLCbnMJNUfXpQag=="}; '
             'Json: None; {}'),
             ('pycsob', 'DEBUG', "Pycsob request headers: {'content-type': 'application/json', 'user-agent': "
-            + USER_AGENT + ", 'Content-Length': '442'}"),
+            + USER_AGENT + ", 'Content-Length': '438'}"),
             ('pycsob', 'INFO', 'Pycsob response: [200] {"payId": "34ae55eb69e2cBF", "dttm": "20190502161426", '
             '"resultCode": 0, "resultMessage": "OK", "paymentStatus": 1, "signature": '
             '"Zd+PKspUEkrsEyxTmXAwrX3pgfS45Sg35dhMo5Oi0aoI8LoLs3dlyPS9vEXw80fxKyduAl5ws8D0Fu2mXLy9bA=="}'),
@@ -613,7 +613,7 @@ class CsobClientTests(TestCase):
             ('customerCode', 'E61EC8'),
         ))
         responses.add(responses.POST, resp_url, body=json.dumps(resp_payload), status=200)
-        out = self.c.payment_init(order_no=666, total_amount='66600', return_url='http://example.com',
+        out = self.c.payment_init(order_no=666, total_amount=66600, return_url='http://example.com',
                                   description='Fooo', pay_operation='customPayment', custom_expiry='20190531120000'
                                   ).payload
 
@@ -623,13 +623,13 @@ class CsobClientTests(TestCase):
         self.log_handler.check(
             ('pycsob', 'INFO', 'Pycsob request POST: https://gw.cz/payment/init; Data: {"merchantId": "MERCHANT", '
             '"orderNo": "666", "dttm": "20190502161426", "payOperation": "customPayment", "payMethod": "card", '
-            '"totalAmount": "66600", "currency": "CZK", "closePayment": true, "returnUrl": "http://example.com", '
-            '"returnMethod": "POST", "cart": [{"name": "Fooo", "quantity": 1, "amount": "66600"}], "language": "cs", '
+            '"totalAmount": 66600, "currency": "CZK", "closePayment": true, "returnUrl": "http://example.com", '
+            '"returnMethod": "POST", "cart": [{"name": "Fooo", "quantity": 1, "amount": 66600}], "language": "cs", '
             '"ttlSec": 600, "customExpiry": "20190531120000", "signature": '
             '"H+eKbex5KdHUtZ/fxB5vfMlgEkH3H6RfDj3oR9i/R/8HYInmyP0tz6+lqzF8EztHmpA/vxevW9qvNTgV535eZw=="}; '
             'Json: None; {}'),
             ('pycsob', 'DEBUG', "Pycsob request headers: {'content-type': 'application/json', 'user-agent': "
-            + USER_AGENT + ", 'Content-Length': '482'}"),
+            + USER_AGENT + ", 'Content-Length': '478'}"),
             ('pycsob', 'INFO', 'Pycsob response: [200] {"payId": "34ae55eb69e2cBF", "dttm": "20190502161426", '
             '"resultCode": 0, "resultMessage": "OK", "paymentStatus": 1, "customerCode": "E61EC8", "signature": '
             '"KmqB9foNOz7aJuyujNcHDpD7rmPZzkN/AePWw62h5xYxowrd1Jb5o6JdF1S76USHaPn4yc+iOIM+pw601l3PxQ=="}'),
@@ -685,7 +685,7 @@ class CsobClientTests(TestCase):
         responses.add(responses.POST, resp_url, body=json.dumps(resp_payload), status=200)
 
         with patch('pycsob.utils.mk_payload', return_value=resp_payload) as mock_mk_payload:
-            self.c.payment_init(42, '100', 'http://example.com', 'Konference Internet a Technologie 19')
+            self.c.payment_init(42, 100, 'http://example.com', 'Konference Internet a Technologie 19')
 
         self.assertEqual(mock_mk_payload.mock_calls, [
             call(KEY_PATH, pairs=(
@@ -694,7 +694,7 @@ class CsobClientTests(TestCase):
                 ('dttm', '20190502161426'),
                 ('payOperation', 'payment'),
                 ('payMethod', 'card'),
-                ('totalAmount', '100'),
+                ('totalAmount', 100),
                 ('currency', 'CZK'),
                 ('closePayment', True),
                 ('returnUrl', 'http://example.com'),
@@ -702,7 +702,7 @@ class CsobClientTests(TestCase):
                 ('cart', [OrderedDict([
                     ('name', 'Konference Internet'),
                     ('quantity', 1),
-                    ('amount', '100')])]),
+                    ('amount', 100)])]),
                 ('customer', None),
                 ('order', None),
                 ('merchantData', None),
