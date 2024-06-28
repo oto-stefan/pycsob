@@ -30,16 +30,12 @@ def reorder_fields(instance: object) -> Iterable[Field]:
 class ConvertMixin:
     """Convert instance into ordered dict."""
 
-    _max_length: Dict[str, int] = {}
-
-    def _to_camel_case(self, name: str) -> str:
-        """Convert name to camel case form."""
-        parts = name.split("_")
-        return parts[0] + "".join(i.title() for i in parts[1:])
+    _max_length: Dict[str, int] = {}  # parameters to string formatting (empty by default)
 
     def _format_field(self, name: str, value: Any) -> str:
+        """Format value - use custom or predefined formatter."""
         if hasattr(self, f"_format_{name}"):
-            value = getattr(self, f"_format_{name}")(value)  # Custom formatting method
+            value = getattr(self, f"_format_{name}")(value)  # custom formatting method
         elif isinstance(value, Enum):
             value = str(value.value)
         elif isinstance(value, (date, datetime)):
@@ -48,7 +44,13 @@ class ConvertMixin:
             value = value[:self._max_length[name]].rstrip()
         return value
 
+    def _to_camel_case(self, name: str) -> str:
+        """Convert name to camel case form."""
+        parts = name.split("_")
+        return parts[0] + "".join(i.title() for i in parts[1:])
+
     def to_dict(self) -> Dict[str, Union[str, Dict]]:
+        """Carry out conversion."""
         data = []
         get_fields = reorder_fields if hasattr(self, '_ordered_fields') else fields
         for field in get_fields(self):
