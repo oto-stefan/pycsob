@@ -38,14 +38,14 @@ class ConvertMixin:
         return parts[0] + "".join(i.title() for i in parts[1:])
 
     def _format_field(self, name: str, value: Any) -> str:
-        if isinstance(value, Enum):
+        if hasattr(self, f"_format_{name}"):
+            value = getattr(self, f"_format_{name}")(value)  # Custom formatting method
+        elif isinstance(value, Enum):
             value = str(value.value)
         elif isinstance(value, (date, datetime)):
             value = value.isoformat()
         elif isinstance(value, str) and name in self._max_length:
             value = value[:self._max_length[name]].rstrip()
-        else:
-            value = getattr(self, f"_format_{name}", lambda v: v)(value)  # Custom formatting method
         return value
 
     def to_dict(self) -> Dict[str, Union[str, Dict]]:
