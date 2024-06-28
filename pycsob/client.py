@@ -4,6 +4,7 @@ import json
 import requests.adapters
 from collections import OrderedDict
 from dataclasses import Field, dataclass, fields
+from datetime import date, datetime
 from enum import Enum, unique
 from typing import Any, Dict, Iterable, List, Optional, Union
 
@@ -39,6 +40,8 @@ class ConvertMixin:
     def _format_field(self, name: str, value: Any) -> str:
         if isinstance(value, Enum):
             value = str(value.value)
+        elif isinstance(value, (date, datetime)):
+            value = value.isoformat()
         elif isinstance(value, str) and name in self._max_length:
             value = value[:self._max_length[name]].rstrip()
         else:
@@ -76,9 +79,9 @@ class CustomerAccount(ConvertMixin):
     """Customer account data."""
     # Documentation: https://github.com/csob/paymentgateway/wiki/Purchase-metadata#customeraccount-data-
 
-    created_at: Optional[str] = None
-    changed_at: Optional[str] = None
-    changed_pwd_at: Optional[str] = None
+    created_at: Union[None, date, datetime] = None
+    changed_at: Union[None, date, datetime] = None
+    changed_pwd_at: Union[None, date, datetime] = None
     order_history: Optional[int] = None
     payments_day: Optional[int] = None
     payments_year: Optional[int] = None
@@ -107,7 +110,7 @@ class CustomerLogin(ConvertMixin):
     # Documentation: https://github.com/csob/paymentgateway/wiki/Purchase-metadata#customerlogin-data-
 
     auth: Optional[CustomerLoginType] = None
-    auth_at: Optional[str] = None
+    auth_at: Union[None, date, datetime] = None
     auth_data: Optional[str] = None
 
 
@@ -167,6 +170,28 @@ class OrderType(Enum):
 
 
 @unique
+class OrderAvailability(Enum):
+    """Availability of order."""
+    # Documentation: https://github.com/csob/paymentgateway/wiki/Purchase-metadata#order-data-
+
+    NOW = "now"
+    PREORDER = "preorder"
+
+
+@unique
+class OrderDelivery(Enum):
+    """Delivery of order."""
+    # Documentation: https://github.com/csob/paymentgateway/wiki/Purchase-metadata#order-data-
+
+    SHIPPING = "shipping"
+    SHIPPING_VERIFIED = "shipping_verified"
+    INSTORE = "instore"
+    DIGITAL = "digital"
+    TICKET = "ticket"
+    OTHER = "other"
+
+
+@unique
 class OrderDeliveryMode(Enum):
     """Delivery mode of order."""
     # Documentation: https://github.com/csob/paymentgateway/wiki/Purchase-metadata#order-data-
@@ -183,8 +208,8 @@ class Order(ConvertMixin):
     # Documentation: https://github.com/csob/paymentgateway/wiki/Purchase-metadata#order-data-
 
     type: Optional[OrderType] = None
-    availability: Optional[str] = None
-    delivery: Optional[str] = None
+    availability: Union[None, OrderAvailability, date, datetime] = None
+    delivery: Optional[OrderDelivery] = None
     delivery_mode: Optional[OrderDeliveryMode] = None
     delivery_email: Optional[str] = None
     name_match: Optional[bool] = None
@@ -195,7 +220,7 @@ class Order(ConvertMixin):
     reorder: Optional[bool] = None
     giftcards: Optional[OrderGiftcards] = None
 
-    _max_length = {"deliveryEmail": 100}
+    _max_length = {"delivery_email": 100}
 
 
 class CsobClient(object):

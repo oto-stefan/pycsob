@@ -1,8 +1,8 @@
 # coding: utf-8
-import datetime
 import json
 import os
 from collections import OrderedDict
+from datetime import datetime, timedelta, timezone
 from unittest import TestCase
 from unittest.mock import call, patch
 
@@ -54,11 +54,18 @@ class CustomerTests(TestCase):
         self.assertEqual(customer.to_dict(), expected)
 
     def test_to_dict_complex(self):
+        tz_cest = timezone(timedelta(hours=2))
         customer = Customer(
             name="test",
             mobile_phone="+420.123456789",
-            account = CustomerAccount(created_at="2024-06-25T13:30:15+02:00", changed_at="2024-06-25T15:21:07+02:00"),
-            login = CustomerLogin(auth=CustomerLoginType.ACCOUNT, auth_at="2024-06-26T08:53:47+02:00"),
+            account = CustomerAccount(
+                created_at=datetime(2024, 6, 25, 13, 30, 15, tzinfo=tz_cest),
+                changed_at=datetime(2024, 6, 25, 15, 21, 7, tzinfo=tz_cest),
+            ),
+            login = CustomerLogin(
+                auth=CustomerLoginType.ACCOUNT,
+                auth_at=datetime(2024, 6, 26, 8, 53, 47, tzinfo=tz_cest),
+            ),
         )
         expected = OrderedDict([
             ("name", "test"),
@@ -141,7 +148,7 @@ class OrderTests(TestCase):
 class CsobClientTests(TestCase):
 
     dttm = "20190502161426"
-    dttime = datetime.datetime(2019, 5, 2, 16, 14, 26)
+    dttime = datetime(2019, 5, 2, 16, 14, 26)
 
     def setUp(self):
         self.c = CsobClient(merchant_id='MERCHANT',
