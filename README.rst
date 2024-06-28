@@ -92,7 +92,6 @@ appropriate enumerations are available.
 
 .. code-block:: python
 
-    tz_cet = timezone(timedelta(hours=1))
     data = {
         "pay_operation": "payment",
         "pay_method": "card",
@@ -107,9 +106,10 @@ appropriate enumerations are available.
             name="Jan Novák",
             email="jan.novak@example.com",
             mobile_phone="+420 123 456 789",
-            account=CustomerAccount(created_at=datetime(2022, 1, 12, 12, 10, 37, tzinfo=tz_cet),
-                                    changed_at=datetime(2022, 1, 15, 15, 10, 12, tzinfo=tz_cet)),
-            login=CustomerLogin(auth=CustomerLoginType.ACCOUNT, auth_at=datetime(2022, 1, 25, 13, 10, 3, tzinfo=tz_cet)),
+            account=CustomerAccount(created_at=datetime(2022, 1, 12, 12, 10, 37, tzinfo=timezone.utc),
+                                    changed_at=datetime(2022, 1, 15, 15, 10, 12, tzinfo=timezone.utc)),
+            login=CustomerLogin(auth=CustomerLoginType.ACCOUNT,
+                                auth_at=datetime(2022, 1, 25, 13, 10, 3, tzinfo=timezone.utc)),
         ),
         "order": Order(
             type=OrderType.PURCHASE,

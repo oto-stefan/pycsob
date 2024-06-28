@@ -60,7 +60,7 @@ def verify(payload, signature, pubkeyfile):
 
 def mk_msg_item(value: Any) -> List[str]:
     """Prepare message item for making signature."""
-    data = []
+    data: List[str] = []
     if value in conf.EMPTY_VALUES:
         return data
     if isinstance(value, (list, tuple)):
@@ -74,7 +74,7 @@ def mk_msg_item(value: Any) -> List[str]:
     return data
 
 
-def mk_msg_for_sign(payload: OrderedDict[str, Any]) -> str:
+def mk_msg_for_sign(payload: OrderedDict[str, Any]) -> bytes:
     """Prepare message for signature."""
     return '|'.join(mk_msg_item(payload)).encode('utf-8', 'xmlcharrefreplace')
 

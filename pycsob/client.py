@@ -306,7 +306,7 @@ class CsobClient(object):
 
         # fill cart if not set
         if not cart:
-            cart = [CartItem(name=description, quantity=1, amount=total_amount)]
+            cart = [CartItem(name=description, quantity=1, amount=int(total_amount))]
 
         payload = utils.mk_payload(self.f_key, pairs=(
             ('merchantId', self.merchant_id),
