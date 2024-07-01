@@ -4,7 +4,7 @@ import json
 import requests.adapters
 from collections import OrderedDict
 from dataclasses import Field, dataclass, fields
-from datetime import date, datetime
+from datetime import datetime
 from enum import Enum, unique
 from typing import Any, Dict, Iterable, List, Optional, Union
 
@@ -38,7 +38,7 @@ class ConvertMixin:
             value = getattr(self, f"_format_{name}")(value)  # custom formatting method
         elif isinstance(value, Enum):
             value = str(value.value)
-        elif isinstance(value, (date, datetime)):
+        elif isinstance(value, datetime):
             value = value.isoformat()
         elif isinstance(value, str) and name in self._max_length:
             value = value[:self._max_length[name]].rstrip()
@@ -81,9 +81,9 @@ class CustomerAccount(ConvertMixin):
     """Customer account data."""
     # Documentation: https://github.com/csob/paymentgateway/wiki/Purchase-metadata#customeraccount-data-
 
-    created_at: Union[None, date, datetime] = None
-    changed_at: Union[None, date, datetime] = None
-    changed_pwd_at: Union[None, date, datetime] = None
+    created_at: Optional[datetime] = None
+    changed_at: Optional[datetime] = None
+    changed_pwd_at: Optional[datetime] = None
     order_history: Optional[int] = None
     payments_day: Optional[int] = None
     payments_year: Optional[int] = None
@@ -112,7 +112,7 @@ class CustomerLogin(ConvertMixin):
     # Documentation: https://github.com/csob/paymentgateway/wiki/Purchase-metadata#customerlogin-data-
 
     auth: Optional[CustomerLoginType] = None
-    auth_at: Union[None, date, datetime] = None
+    auth_at: Optional[datetime] = None
     auth_data: Optional[str] = None
 
 
@@ -204,13 +204,16 @@ class OrderDeliveryMode(Enum):
     LATER = 3
 
 
+OrderAvailabilityType = Union[OrderAvailability, datetime]
+
+
 @dataclass
 class Order(ConvertMixin):
     """Order data for creating card payment."""
     # Documentation: https://github.com/csob/paymentgateway/wiki/Purchase-metadata#order-data-
 
     type: Optional[OrderType] = None
-    availability: Union[None, OrderAvailability, date, datetime] = None
+    availability: Optional[OrderAvailabilityType] = None
     delivery: Optional[OrderDelivery] = None
     delivery_mode: Optional[OrderDeliveryMode] = None
     delivery_email: Optional[str] = None
