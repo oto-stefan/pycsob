@@ -9,8 +9,8 @@ from unittest.mock import call, patch
 import pytest
 from freezegun import freeze_time
 from pycsob import __version__, conf, utils
-from pycsob.client import (CartItem, CsobClient, CustomerAccount, Customer, CustomerLogin, CustomerLoginType,
-                           OrderAddress, Order, OrderGiftcards, OrderType)
+from pycsob.client import (CartItem, CsobClient, Currency, CustomerAccount, Customer, CustomerLogin, CustomerLoginType,
+                           Language, OrderAddress, Order, OrderGiftcards, OrderType, PayOperation)
 from requests.exceptions import HTTPError
 from testfixtures import LogCapture
 from urllib3_mock import Responses
@@ -124,7 +124,7 @@ class OrderTests(TestCase):
             availability="now",
             address_match=True,
             billing=address,
-            giftcards=OrderGiftcards(total_amount=6, currency="USD"),
+            giftcards=OrderGiftcards(total_amount=6, currency=Currency.USD),
         )
         expected = OrderedDict([
             ("type", "purchase"),
@@ -580,7 +580,7 @@ class CsobClientTests(TestCase):
         ))
         responses.add(responses.POST, resp_url, body=json.dumps(resp_payload), status=200)
         out = self.c.payment_init(order_no=666, total_amount=66600, return_url='http://example.com',
-                                  description='Fooo', language='cs_CZ.utf8').payload
+                                  description='Fooo', language=Language.CZECH).payload
 
         assert out['paymentStatus'] == conf.PAYMENT_STATUS_INIT
         assert out['resultCode'] == conf.RETURN_CODE_OK
@@ -614,7 +614,7 @@ class CsobClientTests(TestCase):
         ))
         responses.add(responses.POST, resp_url, body=json.dumps(resp_payload), status=200)
         out = self.c.payment_init(order_no=666, total_amount=66600, return_url='http://example.com',
-                                  description='Fooo', pay_operation='customPayment', custom_expiry='20190531120000'
+                                  description='Fooo', pay_operation=PayOperation.CUSTOM_PAYMENT, custom_expiry='20190531120000'
                                   ).payload
 
         assert out['paymentStatus'] == conf.PAYMENT_STATUS_INIT

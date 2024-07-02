@@ -63,6 +63,70 @@ class ConvertMixin:
         return OrderedDict(data)
 
 
+@unique
+class Currency(Enum):
+    """Currencies allowed in card gatewway."""
+
+    CZK = "CZK"
+    EUR = "EUR"
+    USD = "USD"
+    GBP = "GBP"
+    HUF = "HUF"
+    PLN = "PLN"
+    RON = "RON"
+    NOK = "NOK"
+    SEK = "SEK"
+
+
+@unique
+class PayOperation(Enum):
+    """Pay operations allowed on card gateway."""
+
+    PAYMENT = "payment"
+    ONECLICK_PAYMENT = "oneclickPayment"
+    CUSTOM_PAYMENT = "customPayment"
+
+
+@unique
+class PayMethod(Enum):
+    """Pay methods allowed on card gateway."""
+
+    CARD = "card"
+    CARD_LVP = "card#LVP"
+
+
+@unique
+class ReturnMethod(Enum):
+    """Available HTTP methods."""
+
+    GET = "GET"
+    POST = "POST"
+
+
+@unique
+class Language(Enum):
+    """Allowed languages in card gateway."""
+
+    CZECH = "cs"
+    ENGLISH = "en"
+    GERMAN = "de"
+    FRENCH = "fr"
+    HUNGARIAN = "hu"
+    ITALIAN = "it"
+    JAPANESE = "jp"
+    POLISH = "po"
+    PORTUGUESE = "pt"
+    ROMANIAN = "ro"
+    RUSSIAN = "ru"
+    SLOVAK = "sk"
+    SPANISH = "es"
+    TURKISH = "tu"
+    VIETNAMESE = "vt"
+    CROATIAN = "hr"
+    SLOVENIAN = "sl"
+    SWEDISH = "sv"
+
+
 @dataclass
 class CartItem(ConvertMixin):
     """Cart item for creating card payment."""
@@ -129,7 +193,7 @@ class Customer(ConvertMixin):
     account: Optional[CustomerAccount] = None
     login: Optional[CustomerLogin] = None
 
-    _max_length = {"name": 45, "description": 100}
+    _max_length = {"name": 45}
 
 
 @dataclass
@@ -155,7 +219,7 @@ class OrderGiftcards(ConvertMixin):
     # Documentation: https://github.com/csob/paymentgateway/wiki/Purchase-metadata#ordergiftcards-data-
 
     total_amount: Optional[int] = None
-    currency: Optional[str] = None
+    currency: Optional[Currency] = None
     quantity: Optional[int] = None
 
 
@@ -221,7 +285,7 @@ class Order(ConvertMixin):
     address_match: Optional[bool] = None
     billing: Optional[OrderAddress] = None
     shipping: Optional[OrderAddress] = None
-    shipping_added_at: Optional[str] = None
+    shipping_added_at: Optional[datetime] = None
     reorder: Optional[bool] = None
     giftcards: Optional[OrderGiftcards] = None
 
@@ -259,11 +323,11 @@ class CsobClient(object):
         description: str,
         cart: Optional[List[CartItem]] = None,
         customer_id: Optional[str] = None,
-        currency: str = 'CZK',
-        language: str = 'cs',
+        currency: Currency = Currency.CZK,
+        language: Language = Language.CZECH,
         close_payment: bool = True,
-        return_method: str = 'POST',
-        pay_operation: str = 'payment',
+        return_method: ReturnMethod = ReturnMethod.POST,
+        pay_operation: PayOperation = PayOperation.PAYMENT,
         ttl_sec: int = 600,
         logo_version: Optional[int] = None,
         color_scheme_version: Optional[int] = None,
@@ -271,7 +335,7 @@ class CsobClient(object):
         customer: Optional[Customer] = None,
         order: Optional[Order] = None,
         custom_expiry: Optional[str] = None,
-        pay_method: str = 'card',
+        pay_method: PayMethod = PayMethod.CARD,
     ) -> OrderedDict[str, Any]:
         """
         Initialize transaction, sum of cart items must be equal to total amount
@@ -290,9 +354,8 @@ class CsobClient(object):
         :param cart: items in cart, currently min one item, max two as mentioned in CSOB spec
         :param description: product name - it is a part of the cart
         :param customer_id: optional customer id
-        :param language: supported languages: 'cs', 'en', 'de', 'sk', 'hu', 'it', 'jp', 'pl', 'pt', 'ro', 'ru', 'sk',
-                                              'es', 'tr' or 'vn'
-        :param currency: supported currencies: 'CZK', 'EUR', 'USD', 'GBP'
+        :param language: supported languages: cs, en, de, fr, hu, it, ja, pl, pt, ro, ru, sk, es, tr, vi, hr, sl, sv
+        :param currency: supported currencies: CZK, EUR, USD, GBP, HUF, PLN, RON, NOK, SEK
         :param close_payment:
         :param return_method: method which be used for return to shop from gateway POST (default) or GET
         :param pay_operation: `payment`, `customPayment` or `oneclickPayment`
@@ -315,19 +378,19 @@ class CsobClient(object):
             ('merchantId', self.merchant_id),
             ('orderNo', str(order_no)),
             ('dttm', utils.dttm()),
-            ('payOperation', pay_operation),
-            ('payMethod', pay_method),
+            ('payOperation', pay_operation.value),
+            ('payMethod', pay_method.value),
             ('totalAmount', total_amount),
-            ('currency', currency),
+            ('currency', currency.value),
             ('closePayment', close_payment),
             ('returnUrl', return_url),
-            ('returnMethod', return_method),
+            ('returnMethod', return_method.value),
             ('cart', [item.to_dict() for item in cart]),
             ('customer', customer.to_dict() if customer is not None else None),
             ('order', order.to_dict() if order is not None else None),
             ('merchantData', utils.encode_merchant_data(merchant_data)),
             ('customerId', customer_id),
-            ('language', language[:2]),
+            ('language', language.value),
             ('ttlSec', ttl_sec),
             ('logoVersion', logo_version),
             ('colorSchemeVersion', color_scheme_version),

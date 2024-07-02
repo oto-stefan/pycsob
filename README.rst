@@ -94,23 +94,22 @@ appropriate enumerations are available.
 
     tz = ZoneInfo("Europe/Prague")  # use pytz functionality for Python 3.8
     data = {
-        "pay_operation": "payment",
-        "pay_method": "card",
-        "currency": "CZK",
+        "pay_operation": PayOperation.PAYMENT,
+        "pay_method": PayMethod.CARD,
+        "currency": Currency.CZK,
         "close_payment": True,
-        "return_method": "POST",
+        "return_method": ReturnMethod.POST,
         "cart": [
-            CartItem(name="Bezdrátová sluchátka", quantity=2, amount=123400),
+            CartItem(name="Wireless sluchátka", quantity=2, amount=123400),
             CartItem(name="Doprava", quantity=1, amount=0, description="DPL"),
         ],
         "customer": Customer(
             name="Jan Novák",
             email="jan.novak@example.com",
-            mobile_phone="+420 123 456 789",
+            mobile_phone="+420800-300-300",
             account=CustomerAccount(created_at=datetime(2022, 1, 12, 12, 10, 37, tzinfo=tz),
                                     changed_at=datetime(2022, 1, 15, 15, 10, 12, tzinfo=tz)),
-            login=CustomerLogin(auth=CustomerLoginType.ACCOUNT,
-                                auth_at=datetime(2022, 1, 25, 13, 10, 3, tzinfo=tz)),
+            login=CustomerLogin(auth=CustomerLoginType.ACCOUNT, auth_at=datetime(2022, 6, 25, 13, 10, 3, tzinfo=tz)),
         ),
         "order": Order(
             type=OrderType.PURCHASE,
@@ -125,7 +124,7 @@ appropriate enumerations are available.
                 country="CZE",
             ),
         ),
-        "language": "cs",
+        "language": Language.CZECH,
     }
     r = c.payment_init(16, 123400, "http://twisto.dev/", "Testovací nákup", **data)
 
