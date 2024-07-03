@@ -7,6 +7,7 @@ from collections import OrderedDict
 from Crypto.Hash import SHA256
 from Crypto.PublicKey import RSA
 from Crypto.Signature import PKCS1_v1_5
+from typing import Any, List
 
 from . import conf
 
@@ -57,15 +58,25 @@ def verify(payload, signature, pubkeyfile):
     return verifier.verify(h, b64decode(signature))
 
 
-def mk_msg_for_sign(payload):
-    payload = payload.copy()
-    if 'cart' in payload and payload['cart'] not in conf.EMPTY_VALUES:
-        cart_msg = []
-        for one in payload['cart']:
-            cart_msg.extend(one.values())
-        payload['cart'] = '|'.join(map(str_or_jsbool, cart_msg))
-    msg = '|'.join(map(str_or_jsbool, payload.values()))
-    return msg.encode('utf-8')
+def mk_msg_item(value: Any) -> List[str]:
+    """Prepare message item for making signature."""
+    data: List[str] = []
+    if value in conf.EMPTY_VALUES:
+        return data
+    if isinstance(value, (list, tuple)):
+        for item in value:
+            data.extend(mk_msg_item(item))
+    elif isinstance(value, (dict, OrderedDict)):
+        for item in value.values():
+            data.extend(mk_msg_item(item))
+    else:
+        data.append(str_or_jsbool(value))
+    return data
+
+
+def mk_msg_for_sign(payload: OrderedDict[str, Any]) -> bytes:
+    """Prepare message for signature."""
+    return '|'.join(mk_msg_item(payload)).encode('utf-8', 'xmlcharrefreplace')
 
 
 def mk_payload(keyfile, pairs):
@@ -81,10 +92,10 @@ def mk_url(base_url, endpoint_url, payload=None):
     return urljoin(url, '/'.join(map(quote_plus, payload.values())))
 
 
-def str_or_jsbool(v):
-    if type(v) == bool:
-        return str(v).lower()
-    return str(v)
+def str_or_jsbool(value):
+    if isinstance(value, bool):
+        return str(value).lower()
+    return str(value).strip()
 
 
 def dttm(format_='%Y%m%d%H%M%S'):

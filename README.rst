@@ -87,6 +87,48 @@ You can check payment status.
     #[Out]#              ('authCode', '042760'),
     #[Out]#              ('dttime', datetime.datetime(2016, 6, 15, 10, 45, 1))])
 
+Structured data (i.e. ``cart``, ``customer`` and ``order``) are passed to ``payment_init`` as dataclasses, for some items
+appropriate enumerations are available.
+
+.. code-block:: python
+
+    tz = ZoneInfo("Europe/Prague")
+    data = {
+        "pay_operation": PayOperation.PAYMENT,
+        "pay_method": PayMethod.CARD,
+        "currency": Currency.CZK,
+        "close_payment": True,
+        "return_method": ReturnMethod.POST,
+        "cart": [
+            CartItem(name="Wireless sluchátka", quantity=2, amount=123400),
+            CartItem(name="Doprava", quantity=1, amount=0, description="DPL"),
+        ],
+        "customer": Customer(
+            name="Jan Novák",
+            email="jan.novak@example.com",
+            mobile_phone="+420800-300-300",
+            account=CustomerAccount(created_at=datetime(2022, 1, 12, 12, 10, 37, tzinfo=tz),
+                                    changed_at=datetime(2022, 1, 15, 15, 10, 12, tzinfo=tz)),
+            login=CustomerLogin(auth=CustomerLoginType.ACCOUNT, auth_at=datetime(2022, 6, 25, 13, 10, 3, tzinfo=tz)),
+        ),
+        "order": Order(
+            type=OrderType.PURCHASE,
+            availability=OrderAvailability.NOW,
+            delivery=OrderDelivery.SHIPPING,
+            delivery_mode=OrderDeliveryMode.SAME_DAY,
+            address_match=True,
+            billing=OrderAddress(
+                address_1="Karlova 1",
+                city="Praha",
+                zip="11000",
+                country="CZE",
+            ),
+        ),
+        "language": Language.CZECH,
+    }
+    r = c.payment_init(16, 123400, "http://twisto.dev/", "Testovací nákup", **data)
+
+
 Custom payments are initialized with ``c.payment_init(pay_operation='customPayment')``, you can optionally set 
 payment validity by ``custom_expiry='YYYYMMDDhhmmss'``.
 
