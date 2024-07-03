@@ -92,7 +92,7 @@ appropriate enumerations are available.
 
 .. code-block:: python
 
-    tz = ZoneInfo("Europe/Prague")  # use pytz functionality for Python 3.8
+    tz = ZoneInfo("Europe/Prague")
     data = {
         "pay_operation": PayOperation.PAYMENT,
         "pay_method": PayMethod.CARD,
