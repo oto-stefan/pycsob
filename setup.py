@@ -49,6 +49,7 @@ setup(
     license='MIT',
     url='https://github.com/TwistoPayments/pycsob',
 
+    python_requires='>=3.9',
     packages=['pycsob', 'tests_pycsob'],
     include_package_data=True,
 
