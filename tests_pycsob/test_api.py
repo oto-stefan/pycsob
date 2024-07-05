@@ -10,7 +10,7 @@ import pytest
 from freezegun import freeze_time
 from pycsob import __version__, conf, utils
 from pycsob.client import (CartItem, CsobClient, Currency, CustomerAccount, Customer, CustomerLogin, CustomerLoginType,
-                           Language, OrderAddress, Order, OrderGiftcards, OrderType, PayOperation)
+                           HttpMethod, Language, OrderAddress, Order, OrderGiftcards, OrderType, PayOperation)
 from requests.exceptions import HTTPError
 from testfixtures import LogCapture
 from urllib3_mock import Responses
@@ -476,7 +476,7 @@ class CsobClientTests(TestCase):
     def test_http_status_raised(self):
         responses.add(responses.POST, '/echo/', status=500)
         with pytest.raises(HTTPError) as excinfo:
-            self.c.echo(method='POST')
+            self.c.echo(method=HttpMethod.POST)
         assert '500 Server Error' in str(excinfo.value)
         self.log_handler.check(
             ('pycsob', 'INFO', 'Pycsob request POST: https://gw.cz/echo/; Data: {"merchantId": "MERCHANT", '
@@ -495,7 +495,7 @@ class CsobClientTests(TestCase):
             ('paymentStatus', str(conf.PAYMENT_STATUS_WAITING)),
             ('authCode', 'F7A23E')
         ))
-        r = self.c.gateway_return(dict(resp_payload))
+        r = self.c._gateway_return(dict(resp_payload))
         assert type(r['paymentStatus']) == int
         assert type(r['resultCode']) == int
         self.log_handler.check()
@@ -506,7 +506,7 @@ class CsobClientTests(TestCase):
             ('paymentStatus', str(conf.PAYMENT_STATUS_WAITING)),
             ('merchantData', 'Rm9v')
         ))
-        r = self.c.gateway_return(dict(resp_payload))
+        r = self.c._gateway_return(dict(resp_payload))
         self.assertEqual(r, OrderedDict([
             ('resultCode', 110),
             ('paymentStatus', 7),

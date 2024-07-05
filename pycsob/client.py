@@ -83,7 +83,7 @@ class PayOperation(Enum):
     """Pay operations allowed on card gateway."""
 
     PAYMENT = "payment"
-    ONECLICK_PAYMENT = "oneclickPayment"
+    # ONECLICK_PAYMENT = "oneclickPayment"
     CUSTOM_PAYMENT = "customPayment"
 
 
@@ -96,8 +96,8 @@ class PayMethod(Enum):
 
 
 @unique
-class ReturnMethod(Enum):
-    """Available HTTP methods."""
+class HttpMethod(Enum):
+    """Available HTTP methods (for echo and redirection)."""
 
     GET = "GET"
     POST = "POST"
@@ -296,7 +296,7 @@ class CsobClient(object):
 
     def __init__(self, merchant_id, base_url, private_key_file, csob_pub_key_file):
         """
-        Initialize Client
+        Initialize client
 
         :param merchant_id: Your Merchant ID (you can find it in POSMerchant)
         :param base_url: Base API url development / production
@@ -326,7 +326,7 @@ class CsobClient(object):
         currency: Currency = Currency.CZK,
         language: Language = Language.CZECH,
         close_payment: bool = True,
-        return_method: ReturnMethod = ReturnMethod.POST,
+        return_method: HttpMethod = HttpMethod.POST,
         pay_operation: PayOperation = PayOperation.PAYMENT,
         ttl_sec: int = 600,
         logo_version: Optional[int] = None,
@@ -338,7 +338,7 @@ class CsobClient(object):
         pay_method: PayMethod = PayMethod.CARD,
     ) -> OrderedDict[str, Any]:
         """
-        Initialize transaction, sum of cart items must be equal to total amount
+        Initialize transaction, sum of cart items must be equal to total amount.
         If cart is None, we create it for you from total_amount and description values.
 
         Cart example::
@@ -369,6 +369,7 @@ class CsobClient(object):
         :param pay_method: 'card' = card payment, 'card#LVP' = card payment with low value payment
         :return: response from gateway as OrderedDict
         """
+        # Documentation: https://github.com/csob/paymentgateway/wiki/Basic-methods#payment-init-operation
 
         # fill cart if not set
         if not cart:
@@ -400,18 +401,189 @@ class CsobClient(object):
         r = self._client.post(url, data=json.dumps(payload))
         return utils.validate_response(r, self.f_pubkey)
 
-    def get_payment_process_url(self, pay_id):
+    def get_payment_process_url(self, pay_id: str) -> str:
         """
+        Get URL to process payment on gateway.
+
         :param pay_id: pay_id obtained from payment_init()
         :return: url to process payment
         """
+        # Documentation: https://github.com/csob/paymentgateway/wiki/Basic-methods#paymentprocess-method-
         return utils.mk_url(
             base_url=self.base_url,
             endpoint_url='payment/process/',
-            payload=self.req_payload(pay_id=pay_id)
+            payload=self._req_payload(pay_id=pay_id)
         )
 
-    def gateway_return(self, datadict):
+    def payment_status(self, pay_id: str) -> OrderedDict[str, Any]:
+        """
+        Get current status of payment.
+
+        :param pay_id: pay_id obtained from payment_init()
+        :return: response from gateway as OrderedDict
+        """
+        # Documentation: https://github.com/csob/paymentgateway/wiki/Basic-methods#paymentstatus-method-
+        url = utils.mk_url(
+            base_url=self.base_url,
+            endpoint_url='payment/status/',
+            payload=self._req_payload(pay_id=pay_id)
+        )
+        r = self._client.get(url=url)
+        return utils.validate_response(r, self.f_pubkey)
+
+    def payment_reverse(self, pay_id: str) -> OrderedDict[str, Any]:
+        """
+        Reverse an already authorised payment (cancel it prior to sending into balancing).
+
+        :param pay_id: pay_id obtained from payment_init()
+        :return: response from gateway as OrderedDict
+        """
+        # Documentation: https://github.com/csob/paymentgateway/wiki/Basic-methods#paymentreverse-method-
+        url = utils.mk_url(
+            base_url=self.base_url,
+            endpoint_url='payment/reverse/'
+        )
+        payload = self._req_payload(pay_id=pay_id)
+        r = self._client.put(url, data=json.dumps(payload))
+        return utils.validate_response(r, self.f_pubkey)
+
+    def payment_close(self, pay_id: str, total_amount: Optional[int] = None) -> OrderedDict[str, Any]:
+        """
+        Insert payment into settlement.
+
+        :param pay_id: pay_id obtained from payment_init()
+        :param total_amount: final price (less than or equal to original price)
+        :return: response from gateway as OrderedDict
+        """
+        # Documentation: reversal of an already authorised payment (cancelled prior to sending into balancing)
+        url = utils.mk_url(
+            base_url=self.base_url,
+            endpoint_url='payment/close/'
+        )
+        payload = self._req_payload(pay_id=pay_id, totalAmount=total_amount)
+        r = self._client.put(url, data=json.dumps(payload))
+        return utils.validate_response(r, self.f_pubkey)
+
+    def payment_refund(self, pay_id: str, amount: Optional[int] = None) -> OrderedDict[str, Any]:
+        """
+        Requested to return back funds to buyer.
+
+        :param pay_id: pay_id obtained from payment_init()
+        :param amount: required amount for partial refund
+        :return: response from gateway as OrderedDict
+        """
+        # Documentation: https://github.com/csob/paymentgateway/wiki/Basic-methods#paymentrefund-method-
+        url = utils.mk_url(
+            base_url=self.base_url,
+            endpoint_url='payment/refund/'
+        )
+        payload = self._req_payload(pay_id=pay_id, amount=amount)
+        r = self._client.put(url, data=json.dumps(payload))
+        return utils.validate_response(r, self.f_pubkey)
+
+    def customer_info(self, customer_id: str) -> OrderedDict[str, Any]:
+        """
+        Retrieve saved customer information.
+
+        :param customer_id: e-shop customer ID
+        :return: response from gateway as OrderedDict
+        """
+        # Documentation: https://github.com/csob/paymentgateway/wiki/Basic-methods#echocustomer-method-
+        url = utils.mk_url(
+            base_url=self.base_url,
+            endpoint_url='echo/customer'
+        )
+        payload = utils.mk_payload(self.f_key, pairs=(
+            ('merchantId', self.merchant_id),
+            ('customerId', customer_id),
+            ('dttm', utils.dttm())
+        ))
+        r = self._client.post(url, data=json.dumps(payload))
+        return utils.validate_response(r, self.f_pubkey)
+
+    def echo(self, method: HttpMethod = HttpMethod.POST) -> OrderedDict[str, Any]:
+        """
+        Echo call for development purposes/gateway tests.
+
+        :param method: request method (GET/POST), default is POST
+        :return: response from gateway as OrderedDict
+        """
+        # Documentation: https://github.com/csob/paymentgateway/wiki/Basic-methods#echo-method-
+        payload = utils.mk_payload(self.f_key, pairs=(
+            ('merchantId', self.merchant_id),
+            ('dttm', utils.dttm())
+        ))
+        if method is HttpMethod.POST:
+            url = utils.mk_url(
+                base_url=self.base_url,
+                endpoint_url='echo/'
+            )
+            r = self._client.post(url, data=json.dumps(payload))
+        else:
+            url = utils.mk_url(
+                base_url=self.base_url,
+                endpoint_url='echo/',
+                payload=payload
+            )
+            r = self._client.get(url)
+
+        return utils.validate_response(r, self.f_pubkey)
+
+    def button_init(
+        self,
+        order_no: str,
+        total_amount: int,
+        client_ip: str,
+        return_url: str,
+        return_method: HttpMethod = HttpMethod.POST,
+        language: Language = Language.CZECH,
+        merchant_data=None
+    ) -> OrderedDict[str, Any]:
+        """
+        Initialize payment with payment button.
+ 
+        :param order_no: order number
+        :param total_amount: total price
+        :param client_ip: IP address of customer (IPv4/IPv6)
+        :param return_url: URL to be returned to from payment gateway
+        :param return_method: method which be used for return to shop from gateway POST (default) or GET
+        :param language: supported languages: cs, en, de, fr, hu, it, ja, pl, pt, ro, ru, sk, es, tr, vi, hr, sl, sv
+        :param merchant_data: bytearray of merchant data
+        :return: response from gateway as OrderedDict
+        """
+        # Documentation: https://github.com/csob/paymentgateway/wiki/Methods-for-%C4%8CSOB-Payment-Button#buttoninit-method-
+        payload = utils.mk_payload(self.f_key, pairs=(
+            ('merchantId', self.merchant_id),
+            ('orderNo', str(order_no)),
+            ('dttm', utils.dttm()),
+            ('clientIp', client_ip),
+            ('totalAmount', total_amount),
+            ('currency', 'CZK'),
+            ('returnUrl', return_url),
+            ('returnMethod', return_method.value),
+            ('brand', 'csob'),
+            ('merchantData', utils.encode_merchant_data(merchant_data)),
+            ('language', language.value),
+        ))
+        url = utils.mk_url(base_url=self.base_url, endpoint_url='button/init')
+        r = self._client.post(url, data=json.dumps(payload))
+        return utils.validate_response(r, self.f_pubkey)
+
+    def _req_payload(self, pay_id: str, **kwargs: Any) -> OrderedDict[str, Any]:
+        """
+        Help to create request payload.
+        """
+        pairs = (
+            ('merchantId', self.merchant_id),
+            ('payId', pay_id),
+            ('dttm', utils.dttm()),
+        )
+        for k, v in kwargs.items():
+            if v not in conf.EMPTY_VALUES:
+                pairs += ((k, v),)
+        return utils.mk_payload(keyfile=self.f_key, pairs=pairs)
+
+    def _gateway_return(self, datadict: Dict[str, Any]) -> OrderedDict[str, Any]:
         """
         Return from gateway as OrderedDict
 
@@ -429,117 +601,3 @@ class CsobClient(object):
         if 'merchantData' in o:
             o['merchantData'] = b64decode(o['merchantData'])
         return o
-
-    def payment_status(self, pay_id):
-        url = utils.mk_url(
-            base_url=self.base_url,
-            endpoint_url='payment/status/',
-            payload=self.req_payload(pay_id=pay_id)
-        )
-        r = self._client.get(url=url)
-        return utils.validate_response(r, self.f_pubkey)
-
-    def payment_reverse(self, pay_id):
-        url = utils.mk_url(
-            base_url=self.base_url,
-            endpoint_url='payment/reverse/'
-        )
-        payload = self.req_payload(pay_id)
-        r = self._client.put(url, data=json.dumps(payload))
-        return utils.validate_response(r, self.f_pubkey)
-
-    def payment_close(self, pay_id, total_amount=None):
-        url = utils.mk_url(
-            base_url=self.base_url,
-            endpoint_url='payment/close/'
-        )
-        payload = self.req_payload(pay_id, totalAmount=total_amount)
-        r = self._client.put(url, data=json.dumps(payload))
-        return utils.validate_response(r, self.f_pubkey)
-
-    def payment_refund(self, pay_id, amount=None):
-        url = utils.mk_url(
-            base_url=self.base_url,
-            endpoint_url='payment/refund/'
-        )
-
-        payload = self.req_payload(pay_id, amount=amount)
-        r = self._client.put(url, data=json.dumps(payload))
-        return utils.validate_response(r, self.f_pubkey)
-
-    def customer_info(self, customer_id):
-        """
-        :param customer_id: e-shop customer ID
-        :return: data from JSON response or raise error
-        """
-        url = utils.mk_url(
-            base_url=self.base_url,
-            endpoint_url='echo/customer'
-        )
-        payload = utils.mk_payload(self.f_key, pairs=(
-            ('merchantId', self.merchant_id),
-            ('customerId', customer_id),
-            ('dttm', utils.dttm())
-        ))
-        r = self._client.post(url, data=json.dumps(payload))
-        return utils.validate_response(r, self.f_pubkey)
-
-    def echo(self, method='POST'):
-        """
-        Echo call for development purposes/gateway tests
-
-        :param method: request method (GET/POST), default is POST
-        :return: data from JSON response or raise error
-        """
-        payload = utils.mk_payload(self.f_key, pairs=(
-            ('merchantId', self.merchant_id),
-            ('dttm', utils.dttm())
-        ))
-        if method.lower() == 'post':
-            url = utils.mk_url(
-                base_url=self.base_url,
-                endpoint_url='echo/'
-            )
-            r = self._client.post(url, data=json.dumps(payload))
-        else:
-            url = utils.mk_url(
-                base_url=self.base_url,
-                endpoint_url='echo/',
-                payload=payload
-            )
-            r = self._client.get(url)
-
-        return utils.validate_response(r, self.f_pubkey)
-
-    def req_payload(self, pay_id, **kwargs):
-        pairs = (
-            ('merchantId', self.merchant_id),
-            ('payId', pay_id),
-            ('dttm', utils.dttm()),
-        )
-        for k, v in kwargs.items():
-            if v not in conf.EMPTY_VALUES:
-                pairs += ((k, v),)
-        return utils.mk_payload(keyfile=self.f_key, pairs=pairs)
-
-    def button_init(
-            self, order_no, total_amount, client_ip, return_url,
-            language='cs', return_method='POST', merchant_data=None):
-        "Get url to the button."
-
-        payload = utils.mk_payload(self.f_key, pairs=(
-            ('merchantId', self.merchant_id),
-            ('orderNo', str(order_no)),
-            ('dttm', utils.dttm()),
-            ('clientIp', client_ip),
-            ('totalAmount', total_amount),
-            ('currency', 'CZK'),
-            ('returnUrl', return_url),
-            ('returnMethod', return_method),
-            ('brand', 'csob'),
-            ('merchantData', utils.encode_merchant_data(merchant_data)),
-            ('language', language[:2]),
-        ))
-        url = utils.mk_url(base_url=self.base_url, endpoint_url='button/init')
-        r = self._client.post(url, data=json.dumps(payload))
-        return utils.validate_response(r, self.f_pubkey)

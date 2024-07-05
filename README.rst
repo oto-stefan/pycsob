@@ -55,8 +55,8 @@ like ``payload`` or ``extensions``.
 
 .. code-block:: python
 
-    r = c.payment_init(14, 1000000, 'http://twisto.dev/', 'Tesovaci nakup', customer_id='a@a.aa',
-                       return_method='GET', pay_operation='payment', merchant_data=[1, 2, 3])
+    r = c.payment_init(14, 1000000, 'http://twisto.dev/', 'Testovaci nakup', customer_id='a@a.aa',
+                       return_method=HttpMethod.GET, pay_operation=PayOperation.PAYMENT, merchant_data=[1, 2, 3])
     r.payload
     #[Out]# OrderedDict([('payId', 'b627c1e4e60fcBF'),
     #[Out]#              ('dttm', '20160615104254'),
@@ -98,7 +98,7 @@ appropriate enumerations are available.
         "pay_method": PayMethod.CARD,
         "currency": Currency.CZK,
         "close_payment": True,
-        "return_method": ReturnMethod.POST,
+        "return_method": HttpMethod.POST,
         "cart": [
             CartItem(name="Wireless sluchátka", quantity=2, amount=123400),
             CartItem(name="Doprava", quantity=1, amount=0, description="DPL"),
@@ -129,13 +129,13 @@ appropriate enumerations are available.
     r = c.payment_init(16, 123400, "http://twisto.dev/", "Testovací nákup", **data)
 
 
-Custom payments are initialized with ``c.payment_init(pay_operation='customPayment')``, you can optionally set 
+Custom payments are initialized with ``c.payment_init(pay_operation=PayOperation.CUSTOM_PAYMENT)``, you can optionally set 
 payment validity by ``custom_expiry='YYYYMMDDhhmmss'``.
 
 .. code-block:: python
 
-    r = c.payment_init(14, 1000000, 'http://twisto.dev/', 'Testovaci nakup', return_method='POST',
-                       pay_operation='customPayment', custom_expiry='20160630120000')
+    r = c.payment_init(14, 1000000, 'http://twisto.dev/', 'Testovaci nakup', return_method=HttpMethod.POST,
+                       pay_operation=PayOperation.CUSTOM_PAYMENT, custom_expiry='20160630120000')
     r.payload
     #[Out]# OrderedDict([('payId', 'b627c1e4e60fcBF'),
     #[Out]#              ('dttm', '20160615104254'),
@@ -148,40 +148,6 @@ payment validity by ``custom_expiry='YYYYMMDDhhmmss'``.
 Send (by whatever means) obtained ``customerCode`` to customer who can then perform payment anytime within its validity
 on URL ``https://platebnibrana.csob.cz/payment/{customerCode}`` (``c.get_payment_process_url`` is not applicable
 for custom payments).
-
-You can also use one-click payment methods. For this you need
-to call ``c.payment_init(pay_operation='oneclickPayment')``. After this transaction confirmed
-you can use obtained ``payId`` as template for one-click payment.
-
-.. code-block:: python
-
-    r = c.oneclick_init('1e058ff1d0d5aBF', 666, 10000)
-    r.payload
-    #[Out]# OrderedDict([('payId', 'ff7d3e7c6c4fdBF'),
-    #[Out]#              ('dttm', '20160615104532'),
-    #[Out]#              ('resultCode', 0),
-    #[Out]#              ('resultMessage', 'OK'),
-    #[Out]#              ('paymentStatus', 1),
-    #[Out]#              ('dttime', datetime.datetime(2016, 6, 15, 10, 45, 32))])
-
-    r = c.oneclick_start('ff7d3e7c6c4fdBF')
-    r.payload
-    #[Out]# OrderedDict([('payId', 'ff7d3e7c6c4fdBF'),
-    #[Out]#              ('dttm', '20160615104619'),
-    #[Out]#              ('resultCode', 0),
-    #[Out]#              ('resultMessage', 'OK'),
-    #[Out]#              ('paymentStatus', 2),
-    #[Out]#              ('dttime', datetime.datetime(2016, 6, 15, 10, 46, 19))])
-
-    r = c.payment_status('ff7d3e7c6c4fdBF')
-    r.payload
-    #[Out]# OrderedDict([('payId', 'ff7d3e7c6c4fdBF'),
-    #[Out]#              ('dttm', '20160615104643'),
-    #[Out]#              ('resultCode', 0),
-    #[Out]#              ('resultMessage', 'OK'),
-    #[Out]#              ('paymentStatus', 7),
-    #[Out]#              ('authCode', '168164'),
-    #[Out]#              ('dttime', datetime.datetime(2016, 6, 15, 10, 46, 43))])
 
 Of course you can use standard requests's methods on ``response`` object.
 
