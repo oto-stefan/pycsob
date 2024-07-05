@@ -40,21 +40,24 @@ class PycsobSession(requests.Session):
         return super().send(request, **kwargs)
 
 
-def sign(payload, keyfile):
-    msg = mk_msg_for_sign(payload)
+def pkcs1(keyfile: str):
+    """Initialize signer/verifier with RSA key."""
     with open(keyfile, "rb") as f:
         key = RSA.importKey(f.read())
+    return PKCS1_v1_5.new(key)
+
+
+def sign(payload, signer):
+    """Sign payload."""
+    msg = mk_msg_for_sign(payload)
     h = SHA256.new(msg)
-    signer = PKCS1_v1_5.new(key)
     return b64encode(signer.sign(h)).decode()
 
 
-def verify(payload, signature, pubkeyfile):
+def verify(payload, signature, verifier):
+    """Verify payload signature."""
     msg = mk_msg_for_sign(payload)
-    with open(pubkeyfile, "rb") as f:
-        key = RSA.importKey(f.read())
     h = SHA256.new(msg)
-    verifier = PKCS1_v1_5.new(key)
     return verifier.verify(h, b64decode(signature))
 
 
@@ -79,9 +82,9 @@ def mk_msg_for_sign(payload: OrderedDict[str, Any]) -> bytes:
     return '|'.join(mk_msg_item(payload)).encode('utf-8', 'xmlcharrefreplace')
 
 
-def mk_payload(keyfile, pairs):
+def mk_payload(signer, pairs):
     payload = OrderedDict([(k, v) for k, v in pairs if v not in conf.EMPTY_VALUES])
-    payload['signature'] = sign(payload, keyfile)
+    payload['signature'] = sign(payload, signer)
     return payload
 
 
@@ -107,7 +110,7 @@ def dttm_decode(value):
     return datetime.datetime.strptime(value, "%Y%m%d%H%M%S")
 
 
-def validate_response(response, key):
+def validate_response(response, verifier):
     LOGGER.info("Pycsob response: [{}] {}".format(response.status_code, response.text))
     LOGGER.debug("Pycsob response headers: {}".format(response.headers))
 
@@ -121,7 +124,7 @@ def validate_response(response, key):
         if k in data:
             payload[k] = data[k]
 
-    if not verify(payload, signature, key):
+    if not verify(payload, signature, verifier):
         raise CsobVerifyError('Cannot verify response')
 
     if "dttm" in payload:
@@ -139,7 +142,7 @@ def validate_response(response, key):
                 for k in maskclnrp_keys:
                     if k in one:
                         o[k] = one[k]
-                if verify(o, one['signature'], key):
+                if verify(o, one['signature'], verifier):
                     response.extensions.append(o)
                 else:
                     raise CsobVerifyError('Cannot verify masked card extension response')

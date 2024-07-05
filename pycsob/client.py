@@ -305,8 +305,8 @@ class CsobClient(object):
         """
         self.merchant_id = merchant_id
         self.base_url = base_url
-        self.f_key = private_key_file
-        self.f_pubkey = csob_pub_key_file
+        self.signer = utils.pkcs1(private_key_file)
+        self.verifier = utils.pkcs1(csob_pub_key_file)
 
         session = utils.PycsobSession()
         session.headers = conf.HEADERS
@@ -374,7 +374,7 @@ class CsobClient(object):
         if not cart:
             cart = [CartItem(name=description, quantity=1, amount=total_amount)]
 
-        payload = utils.mk_payload(self.f_key, pairs=(
+        payload = utils.mk_payload(self.signer, pairs=(
             ('merchantId', self.merchant_id),
             ('orderNo', str(order_no)),
             ('dttm', utils.dttm()),
@@ -398,7 +398,7 @@ class CsobClient(object):
         ))
         url = utils.mk_url(base_url=self.base_url, endpoint_url='payment/init')
         r = self._client.post(url, data=json.dumps(payload))
-        return utils.validate_response(r, self.f_pubkey)
+        return utils.validate_response(r, self.verifier)
 
     def get_payment_process_url(self, pay_id):
         """
@@ -422,7 +422,7 @@ class CsobClient(object):
         for k in conf.RESPONSE_KEYS:
             if k in datadict:
                 o[k] = int(datadict[k]) if k in ('resultCode', 'paymentStatus') else datadict[k]
-        if not utils.verify(o, datadict['signature'], self.f_pubkey):
+        if not utils.verify(o, datadict['signature'], self.verifier):
             raise utils.CsobVerifyError('Unverified gateway return data')
         if "dttm" in o:
             o["dttime"] = utils.dttm_decode(o["dttm"])
@@ -437,7 +437,7 @@ class CsobClient(object):
             payload=self.req_payload(pay_id=pay_id)
         )
         r = self._client.get(url=url)
-        return utils.validate_response(r, self.f_pubkey)
+        return utils.validate_response(r, self.verifier)
 
     def payment_reverse(self, pay_id):
         url = utils.mk_url(
@@ -446,7 +446,7 @@ class CsobClient(object):
         )
         payload = self.req_payload(pay_id)
         r = self._client.put(url, data=json.dumps(payload))
-        return utils.validate_response(r, self.f_pubkey)
+        return utils.validate_response(r, self.verifier)
 
     def payment_close(self, pay_id, total_amount=None):
         url = utils.mk_url(
@@ -455,7 +455,7 @@ class CsobClient(object):
         )
         payload = self.req_payload(pay_id, totalAmount=total_amount)
         r = self._client.put(url, data=json.dumps(payload))
-        return utils.validate_response(r, self.f_pubkey)
+        return utils.validate_response(r, self.verifier)
 
     def payment_refund(self, pay_id, amount=None):
         url = utils.mk_url(
@@ -465,7 +465,7 @@ class CsobClient(object):
 
         payload = self.req_payload(pay_id, amount=amount)
         r = self._client.put(url, data=json.dumps(payload))
-        return utils.validate_response(r, self.f_pubkey)
+        return utils.validate_response(r, self.verifier)
 
     def customer_info(self, customer_id):
         """
@@ -476,13 +476,13 @@ class CsobClient(object):
             base_url=self.base_url,
             endpoint_url='echo/customer'
         )
-        payload = utils.mk_payload(self.f_key, pairs=(
+        payload = utils.mk_payload(self.signer, pairs=(
             ('merchantId', self.merchant_id),
             ('customerId', customer_id),
             ('dttm', utils.dttm())
         ))
         r = self._client.post(url, data=json.dumps(payload))
-        return utils.validate_response(r, self.f_pubkey)
+        return utils.validate_response(r, self.verifier)
 
     def echo(self, method='POST'):
         """
@@ -491,7 +491,7 @@ class CsobClient(object):
         :param method: request method (GET/POST), default is POST
         :return: data from JSON response or raise error
         """
-        payload = utils.mk_payload(self.f_key, pairs=(
+        payload = utils.mk_payload(self.signer, pairs=(
             ('merchantId', self.merchant_id),
             ('dttm', utils.dttm())
         ))
@@ -509,7 +509,7 @@ class CsobClient(object):
             )
             r = self._client.get(url)
 
-        return utils.validate_response(r, self.f_pubkey)
+        return utils.validate_response(r, self.verifier)
 
     def req_payload(self, pay_id, **kwargs):
         pairs = (
@@ -520,14 +520,14 @@ class CsobClient(object):
         for k, v in kwargs.items():
             if v not in conf.EMPTY_VALUES:
                 pairs += ((k, v),)
-        return utils.mk_payload(keyfile=self.f_key, pairs=pairs)
+        return utils.mk_payload(self.signer, pairs=pairs)
 
     def button_init(
             self, order_no, total_amount, client_ip, return_url,
             language='cs', return_method='POST', merchant_data=None):
         "Get url to the button."
 
-        payload = utils.mk_payload(self.f_key, pairs=(
+        payload = utils.mk_payload(self.signer, pairs=(
             ('merchantId', self.merchant_id),
             ('orderNo', str(order_no)),
             ('dttm', utils.dttm()),
@@ -542,4 +542,4 @@ class CsobClient(object):
         ))
         url = utils.mk_url(base_url=self.base_url, endpoint_url='button/init')
         r = self._client.post(url, data=json.dumps(payload))
-        return utils.validate_response(r, self.f_pubkey)
+        return utils.validate_response(r, self.verifier)

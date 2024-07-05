@@ -160,7 +160,7 @@ class CsobClientTests(TestCase):
 
     @responses.activate
     def test_echo_post(self):
-        resp_payload = utils.mk_payload(KEY_PATH, pairs=(
+        resp_payload = utils.mk_payload(self.c.signer, pairs=(
             ('dttm', utils.dttm()),
             ('resultCode', conf.RETURN_CODE_OK),
             ('resultMessage', 'OK'),
@@ -186,11 +186,11 @@ class CsobClientTests(TestCase):
 
     @responses.activate
     def test_echo_get(self):
-        payload = utils.mk_payload(KEY_PATH, pairs=(
+        payload = utils.mk_payload(self.c.signer, pairs=(
             ('merchantId', self.c.merchant_id),
             ('dttm', utils.dttm()),
         ))
-        resp_payload = utils.mk_payload(KEY_PATH, pairs=(
+        resp_payload = utils.mk_payload(self.c.signer, pairs=(
             ('dttm', utils.dttm()),
             ('resultCode', conf.RETURN_CODE_OK),
             ('resultMessage', 'OK'),
@@ -216,14 +216,14 @@ class CsobClientTests(TestCase):
 
     def test_sign_message(self):
         msg = 'Příliš žluťoučký kůň úpěl ďábelské ódy.'
-        payload = utils.mk_payload(KEY_PATH, pairs=(
+        payload = utils.mk_payload(self.c.signer, pairs=(
             ('merchantId', self.c.merchant_id),
             ('dttm', utils.dttm()),
             ('description', msg)
         ))
         assert payload['description'] == msg
         sig = payload.pop('signature')
-        assert utils.verify(payload, sig, KEY_PATH)
+        assert utils.verify(payload, sig, self.c.verifier)
 
     def test_complex_message_for_sign(self):
         pairs = (
@@ -279,9 +279,9 @@ class CsobClientTests(TestCase):
             ("merchantData", "some-base64-encoded-merchant-data"),
             ("language", "cs"),
         )
-        payload = utils.mk_payload(KEY_PATH, pairs)
+        payload = utils.mk_payload(self.c.signer, pairs)
         sig = payload.pop('signature')
-        assert utils.verify(payload, sig, KEY_PATH)
+        assert utils.verify(payload, sig, self.c.verifier)
         msg = utils.mk_msg_for_sign(payload).decode('utf-8')
         expected_items = (
             'MERCHANT',
@@ -325,7 +325,7 @@ class CsobClientTests(TestCase):
     @responses.activate
     def test_payment_init_success(self):
         resp_url = '/payment/init'
-        resp_payload = utils.mk_payload(KEY_PATH, pairs=(
+        resp_payload = utils.mk_payload(self.c.signer, pairs=(
             ('payId', PAY_ID),
             ('dttm', utils.dttm()),
             ('resultCode', conf.RETURN_CODE_OK),
@@ -359,7 +359,7 @@ class CsobClientTests(TestCase):
     @responses.activate
     def test_payment_init_complex_data(self):
         resp_url = '/payment/init'
-        resp_payload = utils.mk_payload(KEY_PATH, pairs=(
+        resp_payload = utils.mk_payload(self.c.signer, pairs=(
             ('payId', PAY_ID),
             ('dttm', utils.dttm()),
             ('resultCode', conf.RETURN_CODE_OK),
@@ -394,7 +394,7 @@ class CsobClientTests(TestCase):
             CartItem(name='Order in sho XYZ', quantity=5, amount=12345),
             CartItem(name='Postage', quantity=1, amount=0),
         ]
-        resp_payload = utils.mk_payload(KEY_PATH, pairs=(
+        resp_payload = utils.mk_payload(self.c.signer, pairs=(
             ('payId', PAY_ID),
             ('dttm', utils.dttm()),
             ('resultCode', conf.RETURN_CODE_PARAM_INVALID),
@@ -428,13 +428,13 @@ class CsobClientTests(TestCase):
     @responses.activate
     def test_payment_status_extension(self):
 
-        payload = utils.mk_payload(KEY_PATH, pairs=(
+        payload = utils.mk_payload(self.c.signer, pairs=(
             ('merchantId', self.c.merchant_id),
             ('payId', PAY_ID),
             ('dttm', utils.dttm()),
         ))
 
-        resp_payload = utils.mk_payload(KEY_PATH, pairs=(
+        resp_payload = utils.mk_payload(self.c.signer, pairs=(
             ('payId', PAY_ID),
             ('dttm', utils.dttm()),
             ('resultCode', conf.RETURN_CODE_PARAM_INVALID),
@@ -442,7 +442,7 @@ class CsobClientTests(TestCase):
             ('paymentStatus', conf.PAYMENT_STATUS_WAITING),
             ('authCode', 'F7A23E')
         ))
-        ext_payload = utils.mk_payload(KEY_PATH, pairs=(
+        ext_payload = utils.mk_payload(self.c.signer, pairs=(
             ('extension', 'maskClnRP'),
             ('dttm', utils.dttm()),
             ('maskedCln', '****1234'),
@@ -490,7 +490,7 @@ class CsobClientTests(TestCase):
         )
 
     def test_gateway_return_retype(self):
-        resp_payload = utils.mk_payload(KEY_PATH, pairs=(
+        resp_payload = utils.mk_payload(self.c.signer, pairs=(
             ('resultCode', str(conf.RETURN_CODE_PARAM_INVALID)),
             ('paymentStatus', str(conf.PAYMENT_STATUS_WAITING)),
             ('authCode', 'F7A23E')
@@ -501,7 +501,7 @@ class CsobClientTests(TestCase):
         self.log_handler.check()
 
     def test_gateway_return_merchant_data(self):
-        resp_payload = utils.mk_payload(KEY_PATH, pairs=(
+        resp_payload = utils.mk_payload(self.c.signer, pairs=(
             ('resultCode', str(conf.RETURN_CODE_PARAM_INVALID)),
             ('paymentStatus', str(conf.PAYMENT_STATUS_WAITING)),
             ('merchantData', 'Rm9v')
@@ -522,7 +522,7 @@ class CsobClientTests(TestCase):
     @responses.activate
     def test_payment_init_with_merchant_data(self):
         resp_url = '/payment/init'
-        resp_payload = utils.mk_payload(KEY_PATH, pairs=(
+        resp_payload = utils.mk_payload(self.c.signer, pairs=(
             ('payId', PAY_ID),
             ('dttm', utils.dttm()),
             ('resultCode', conf.RETURN_CODE_OK),
@@ -555,7 +555,7 @@ class CsobClientTests(TestCase):
     @responses.activate
     def test_payment_init_with_too_long_merchant_data(self):
         resp_url = '/payment/init'
-        resp_payload = utils.mk_payload(KEY_PATH, pairs=(
+        resp_payload = utils.mk_payload(self.c.signer, pairs=(
             ('payId', PAY_ID),
             ('dttm', utils.dttm()),
             ('resultCode', conf.RETURN_CODE_OK),
@@ -571,7 +571,7 @@ class CsobClientTests(TestCase):
     @responses.activate
     def test_payment_init_language_with_locale_cs(self):
         resp_url = '/payment/init'
-        resp_payload = utils.mk_payload(KEY_PATH, pairs=(
+        resp_payload = utils.mk_payload(self.c.signer, pairs=(
             ('payId', PAY_ID),
             ('dttm', utils.dttm()),
             ('resultCode', conf.RETURN_CODE_OK),
@@ -604,7 +604,7 @@ class CsobClientTests(TestCase):
     @responses.activate
     def test_payment_init_custom_payment(self):
         resp_url = '/payment/init'
-        resp_payload = utils.mk_payload(KEY_PATH, pairs=(
+        resp_payload = utils.mk_payload(self.c.signer, pairs=(
             ('payId', PAY_ID),
             ('dttm', utils.dttm()),
             ('resultCode', conf.RETURN_CODE_OK),
@@ -638,7 +638,7 @@ class CsobClientTests(TestCase):
 
     @responses.activate
     def test_button_init(self):
-        resp_payload = utils.mk_payload(KEY_PATH, pairs=(
+        resp_payload = utils.mk_payload(self.c.signer, pairs=(
             ('payId', PAY_ID),
             ('dttm', utils.dttm()),
             ('resultCode', conf.RETURN_CODE_OK),
@@ -675,7 +675,7 @@ class CsobClientTests(TestCase):
     @responses.activate
     def test_description_strip(self):
         resp_url = '/payment/init'
-        resp_payload = utils.mk_payload(KEY_PATH, pairs=(
+        resp_payload = utils.mk_payload(self.c.signer, pairs=(
             ('payId', PAY_ID),
             ('dttm', utils.dttm()),
             ('resultCode', conf.RETURN_CODE_OK),
@@ -688,7 +688,7 @@ class CsobClientTests(TestCase):
             self.c.payment_init(42, 100, 'http://example.com', 'Konference Internet a Technologie 19')
 
         self.assertEqual(mock_mk_payload.mock_calls, [
-            call(KEY_PATH, pairs=(
+            call(self.c.signer, pairs=(
                 ('merchantId', 'MERCHANT'),
                 ('orderNo', '42'),
                 ('dttm', '20190502161426'),
